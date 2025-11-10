@@ -103,14 +103,14 @@
     right: 20px;
     top: 90px;
     background: linear-gradient(145deg, #ffffff, #f0f0f0);
-    padding: 15px;
-    border-radius: 20px;
+    padding: 12px;
+    border-radius: 15px;
     z-index: 1500;
     box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    min-width: 180px;
+    gap: 8px;
+    min-width: 150px;
     transition: all 0.3s ease;
   }
 
@@ -179,32 +179,40 @@
     margin: 4px 0;
   }
 
-  /* لوحة المعلومات */
-  #info-panel {
+  /* لوحة الجانب الأيسر */
+  #left-sidebar {
     position: absolute;
     left: 20px;
     top: 90px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    padding: 20px;
-    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
     z-index: 1500;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-    min-width: 250px;
-    max-width: 300px;
     transition: all 0.3s ease;
+    max-height: calc(100vh - 200px);
   }
 
-  #info-panel.hidden {
+  #left-sidebar.hidden {
     transform: translateX(-120%);
     opacity: 0;
     pointer-events: none;
   }
 
+  /* لوحة المعلومات مصغرة */
+  #info-panel {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 15px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    min-width: 250px;
+    max-width: 300px;
+  }
+
   #info-panel h3 {
     color: #667eea;
-    font-size: 18px;
-    margin-bottom: 15px;
+    font-size: 16px;
+    margin-bottom: 10px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -212,101 +220,64 @@
 
   .info-item {
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    padding: 12px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 12px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .info-label {
     font-weight: 600;
     color: #555;
-    margin-bottom: 4px;
   }
 
   .info-value {
     color: #667eea;
     font-weight: 700;
-    font-size: 16px;
+    font-size: 15px;
   }
 
-  /* Popup محسّن */
-  .ol-popup {
-    position: absolute;
-    background: white;
-    border-radius: 15px;
-    padding: 20px;
-    min-width: 250px;
-    max-width: 400px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-    font-size: 14px;
-    line-height: 1.8;
-    color: #333;
-    z-index: 2500;
-    border: 3px solid #667eea;
-    animation: popupAppear 0.3s ease-out;
-  }
 
-  @keyframes popupAppear {
-    from {
-      opacity: 0;
-      transform: translateY(-20px) scale(0.9);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
 
-  .ol-popup:after {
-    display: none;
-  }
 
-  .ol-popup:before {
-    display: none;
-  }
 
-  .ol-popup-closer {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    text-decoration: none;
-    font-size: 24px;
+  #fixed-popup h3 {
     color: #667eea;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    width: 30px;
-    height: 30px;
+    font-size: 16px;
+    margin-bottom: 10px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background: rgba(102, 126, 234, 0.1);
-  }
-
-  .ol-popup-closer:hover {
-    color: #f5576c;
-    background: rgba(245, 87, 108, 0.2);
-    transform: rotate(90deg);
-  }
-
-  #popup-content {
-    margin-top: 15px;
-  }
-
-  #popup-content b {
-    color: #667eea;
-    font-size: 18px;
-    display: block;
-    margin-bottom: 10px;
+    gap: 8px;
     border-bottom: 2px solid #667eea;
     padding-bottom: 8px;
   }
 
-  #popup-content div {
-    margin: 8px 0;
+  #fixed-popup-content {
+    font-size: 13px;
+    line-height: 1.8;
+    color: #333;
+  }
+
+  #fixed-popup-content.empty {
+    text-align: center;
+    color: #999;
+    padding: 20px;
+    font-style: italic;
+  }
+
+  #fixed-popup-content b {
+    color: #667eea;
+    font-size: 15px;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  #fixed-popup-content div {
+    margin: 6px 0;
     padding: 8px;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     border-radius: 8px;
@@ -368,13 +339,32 @@
     animation: slideInRight 0.5s ease-out;
   }
 
-  #info-panel {
+  #left-sidebar {
     animation: slideInLeft 0.5s ease-out;
+  }
+
+  /* Scrollbar للنافذة الثابتة */
+  #fixed-popup::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  #fixed-popup::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  #fixed-popup::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 10px;
+  }
+
+  #fixed-popup::-webkit-scrollbar-thumb:hover {
+    background: #764ba2;
   }
 
   /* Responsive */
   @media (max-width: 768px) {
-    #toolbar, #info-panel {
+    #toolbar, #left-sidebar {
       position: fixed;
       max-width: 90%;
     }
@@ -393,9 +383,8 @@
       font-size: 11px;
     }
 
-    .ol-popup {
-      min-width: 200px;
-      max-width: 300px;
+    #fixed-popup {
+      max-height: 250px;
     }
   }
 </style>
@@ -413,7 +402,7 @@
       </button>
       <button class="toggle-btn active" id="toggleInfo">
         <span>📊</span>
-        <span>الإحصائيات</span>
+        <span>اللوحات</span>
       </button>
       <div style="color: white; font-size: 14px; margin-right: 10px;">
         <span class="pulse">⚡</span> نظام احترافي
@@ -445,30 +434,33 @@
     </div>
   </div>
 
-  <div id="info-panel">
-    <h3>📊 الإحصائيات</h3>
-    <div class="info-item">
-      <div class="info-label">عدد النقاط</div>
-      <div class="info-value" id="pointCount">0</div>
+  <div id="left-sidebar">
+    <div id="info-panel">
+      <h3>📊 الإحصائيات</h3>
+      <div class="info-item">
+        <span class="info-label">النقاط</span>
+        <span class="info-value" id="pointCount">0</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">الخطوط</span>
+        <span class="info-value" id="lineCount">0</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">المضلعات</span>
+        <span class="info-value" id="polygonCount">0</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">الإجمالي</span>
+        <span class="info-value" id="totalCount">0</span>
+      </div>
     </div>
-    <div class="info-item">
-      <div class="info-label">عدد الخطوط</div>
-      <div class="info-value" id="lineCount">0</div>
-    </div>
-    <div class="info-item">
-      <div class="info-label">عدد المضلعات</div>
-      <div class="info-value" id="polygonCount">0</div>
-    </div>
-    <div class="info-item">
-      <div class="info-label">إجمالي العناصر</div>
-      <div class="info-value" id="totalCount">0</div>
-    </div>
-  </div>
 
-  <!-- Popup Element -->
-  <div id="popup" class="ol-popup">
-    <a href="#" id="popup-closer" class="ol-popup-closer">×</a>
-    <div id="popup-content"></div>
+    <div id="fixed-popup">
+      <h3>📝 معلومات العنصر</h3>
+      <div id="fixed-popup-content" class="empty">
+        👆 اضغط على أي عنصر لعرض معلوماته هنا
+      </div>
+    </div>
   </div>
 
   <div id="footer">
@@ -509,30 +501,10 @@
     })
   });
 
-  // --- Popup Overlay ---
-  const popupElement = document.getElementById('popup');
-  const popupContent = document.getElementById('popup-content');
-  const popupCloser = document.getElementById('popup-closer');
-
-  const popupOverlay = new ol.Overlay({
-    element: popupElement,
-    autoPan: true,
-    autoPanAnimation: {
-      duration: 250
-    }
-  });
-
-  popupCloser.onclick = function() {
-    popupOverlay.setPosition(undefined);
-    popupCloser.blur();
-    return false;
-  };
-
   // --- Initialisation de la carte ---
   const map = new ol.Map({
     target: 'map',
     layers: [satellite, labels, vector],
-    overlays: [popupOverlay],
     view: new ol.View({ 
       center: ol.proj.fromLonLat([-7.5898, 33.5731]), // Casablanca
       zoom: 7 
@@ -542,6 +514,7 @@
   let draw = null;
   let activeButton = null;
   let deleteMode = false;
+  let selectedFeature = null;
 
   // --- أزرار إخفاء/إظهار اللوحات ---
   document.getElementById('toggleToolbar').onclick = function() {
@@ -551,8 +524,8 @@
   };
 
   document.getElementById('toggleInfo').onclick = function() {
-    const infoPanel = document.getElementById('info-panel');
-    infoPanel.classList.toggle('hidden');
+    const sidebar = document.getElementById('left-sidebar');
+    sidebar.classList.toggle('hidden');
     this.classList.toggle('active');
   };
 
@@ -577,7 +550,23 @@
   source.on('addfeature', updateStats);
   source.on('removefeature', updateStats);
 
-  // --- Clic sur la carte (عرض Popup) ---
+  // --- عرض المعلومات في النافذة الثابتة ---
+  function showFixedPopup(feature) {
+    const popupContent = document.getElementById('fixed-popup-content');
+    const popupInfo = feature.get('popup') || 'لا توجد معلومات';
+    popupContent.innerHTML = popupInfo;
+    popupContent.classList.remove('empty');
+    selectedFeature = feature;
+  }
+
+  function clearFixedPopup() {
+    const popupContent = document.getElementById('fixed-popup-content');
+    popupContent.innerHTML = '👆 اضغط على أي عنصر لعرض معلوماته هنا';
+    popupContent.classList.add('empty');
+    selectedFeature = null;
+  }
+
+  // --- Clic sur la carte ---
   map.on('click', function(evt) {
     if (draw) return;
 
@@ -585,38 +574,26 @@
       map.forEachFeatureAtPixel(evt.pixel, function(feature) {
         if (confirm("🧹 هل تريد حذف هذا العنصر؟")) {
           source.removeFeature(feature);
-          popupOverlay.setPosition(undefined);
+          if (selectedFeature === feature) {
+            clearFixedPopup();
+          }
         }
       });
       return;
     }
 
-    // إظهار Popup عند النقر على عنصر
+    // عرض معلومات العنصر في النافذة الثابتة
     let clickedFeature = null;
-    let clickedCoordinate = null;
     
     map.forEachFeatureAtPixel(evt.pixel, function(feature) {
       clickedFeature = feature;
-      const geom = feature.getGeometry();
-      
-      // الحصول على أقرب نقطة من العنصر إلى مكان النقر
-      if (geom.getType() === 'Point') {
-        clickedCoordinate = geom.getCoordinates();
-      } else if (geom.getType() === 'LineString') {
-        clickedCoordinate = geom.getClosestPoint(evt.coordinate);
-      } else if (geom.getType() === 'Polygon') {
-        clickedCoordinate = geom.getInteriorPoint().getCoordinates();
-      }
-      
       return true;
     });
 
-    if (clickedFeature && clickedCoordinate) {
-      const popupInfo = clickedFeature.get('popup') || 'لا توجد معلومات';
-      popupContent.innerHTML = popupInfo;
-      popupOverlay.setPosition(clickedCoordinate);
+    if (clickedFeature) {
+      showFixedPopup(clickedFeature);
     } else {
-      popupOverlay.setPosition(undefined);
+      clearFixedPopup();
     }
   });
 
@@ -667,6 +644,12 @@
       }
 
       feature.set('popup', `<b>${feature.get('name')}</b>${text}`);
+      
+      // عرض المعلومات تلقائياً في النافذة الثابتة
+      setTimeout(() => {
+        showFixedPopup(feature);
+      }, 100);
+      
       deactivateDraw();
     });
   }
@@ -697,7 +680,7 @@
   document.getElementById('clearAll').onclick = () => {
     if (confirm("⚠️ هل أنت متأكد من حذف جميع العناصر؟")) {
       source.clear();
-      popupOverlay.setPosition(undefined);
+      clearFixedPopup();
     }
   };
 
