@@ -231,6 +231,87 @@
     font-size: 16px;
   }
 
+  /* Popup محسّن */
+  .ol-popup {
+    position: absolute;
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    min-width: 250px;
+    max-width: 400px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    font-size: 14px;
+    line-height: 1.8;
+    color: #333;
+    z-index: 2500;
+    border: 3px solid #667eea;
+    animation: popupAppear 0.3s ease-out;
+  }
+
+  @keyframes popupAppear {
+    from {
+      opacity: 0;
+      transform: translateY(-20px) scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .ol-popup:after {
+    display: none;
+  }
+
+  .ol-popup:before {
+    display: none;
+  }
+
+  .ol-popup-closer {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    text-decoration: none;
+    font-size: 24px;
+    color: #667eea;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(102, 126, 234, 0.1);
+  }
+
+  .ol-popup-closer:hover {
+    color: #f5576c;
+    background: rgba(245, 87, 108, 0.2);
+    transform: rotate(90deg);
+  }
+
+  #popup-content {
+    margin-top: 15px;
+  }
+
+  #popup-content b {
+    color: #667eea;
+    font-size: 18px;
+    display: block;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 8px;
+  }
+
+  #popup-content div {
+    margin: 8px 0;
+    padding: 8px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 8px;
+  }
+
   /* التوقيع */
   #footer {
     position: absolute;
@@ -258,25 +339,6 @@
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
-  }
-
-  /* Tooltip محسّن */
-  .ol-tooltip {
-    position: absolute;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 10px 15px;
-    border-radius: 10px;
-    white-space: nowrap;
-    font-weight: 600;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    font-size: 13px;
-  }
-
-  .ol-tooltip-static {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-    border: 2px solid white;
   }
 
   /* تأثيرات الحركة */
@@ -329,6 +391,11 @@
     .toggle-btn {
       padding: 6px 12px;
       font-size: 11px;
+    }
+
+    .ol-popup {
+      min-width: 200px;
+      max-width: 300px;
     }
   }
 </style>
@@ -398,9 +465,15 @@
     </div>
   </div>
 
+  <!-- Popup Element -->
+  <div id="popup" class="ol-popup">
+    <a href="#" id="popup-closer" class="ol-popup-closer">×</a>
+    <div id="popup-content"></div>
+  </div>
+
   <div id="footer">
     <span>🗺️</span>
-    <span>© CartoMaroc 2025 - Powered by OpenLayers</span>
+    <span>© www.cartomaroc.com / Daouairi Ayoub </span>
   </div>
 
   <div id="map"></div>
@@ -436,10 +509,34 @@
     })
   });
 
+  // --- Popup Overlay ---
+  const popupElement = document.getElementById('popup');
+  const popupContent = document.getElementById('popup-content');
+  const popupCloser = document.getElementById('popup-closer');
+
+ const popupOverlay = new ol.Overlay({
+  element: popupElement,
+  autoPan: true,
+  autoPanAnimation: {
+    duration: 250
+  },
+ positioning: 'bottom-center',
+offset: [0, -15]
+
+});
+
+
+  popupCloser.onclick = function() {
+    popupOverlay.setPosition(undefined);
+    popupCloser.blur();
+    return false;
+  };
+
   // --- Initialisation de la carte ---
   const map = new ol.Map({
     target: 'map',
     layers: [satellite, labels, vector],
+    overlays: [popupOverlay],
     view: new ol.View({ 
       center: ol.proj.fromLonLat([-7.5898, 33.5731]), // Casablanca
       zoom: 7 
@@ -449,15 +546,6 @@
   let draw = null;
   let activeButton = null;
   let deleteMode = false;
-
-  // --- Tooltip ---
-  const overlay = new ol.Overlay({
-    element: document.createElement('div'),
-    offset: [0, -15],
-    positioning: 'bottom-center'
-  });
-  overlay.getElement().className = 'ol-tooltip ol-tooltip-static';
-  map.addOverlay(overlay);
 
   // --- أزرار إخفاء/إظهار اللوحات ---
   document.getElementById('toggleToolbar').onclick = function() {
@@ -493,7 +581,7 @@
   source.on('addfeature', updateStats);
   source.on('removefeature', updateStats);
 
-  // --- Clic sur la carte ---
+  // --- Clic sur la carte (عرض Popup) ---
   map.on('click', function(evt) {
     if (draw) return;
 
@@ -501,17 +589,47 @@
       map.forEachFeatureAtPixel(evt.pixel, function(feature) {
         if (confirm("🧹 هل تريد حذف هذا العنصر؟")) {
           source.removeFeature(feature);
+          popupOverlay.setPosition(undefined);
         }
       });
       return;
     }
 
-    overlay.setPosition(undefined);
+    // إظهار Popup عند النقر على عنصر
+    let clickedFeature = null;
+    let clickedCoordinate = null;
+    
     map.forEachFeatureAtPixel(evt.pixel, function(feature) {
-      const coord = evt.coordinate;
-      overlay.getElement().innerHTML = feature.get('popup') || '';
-      overlay.setPosition(coord);
+      clickedFeature = feature;
+      const geom = feature.getGeometry();
+      
+      // الحصول على أقرب نقطة من العنصر إلى مكان النقر
+      if (geom.getType() === 'Point') {
+        clickedCoordinate = geom.getCoordinates();
+      } else if (geom.getType() === 'LineString') {
+        clickedCoordinate = geom.getClosestPoint(evt.coordinate);
+      } else if (geom.getType() === 'Polygon') {
+        clickedCoordinate = geom.getInteriorPoint().getCoordinates();
+      }
+      
+      return true;
     });
+
+    if (clickedFeature && clickedCoordinate) {
+      const popupInfo = clickedFeature.get('popup') || 'لا توجد معلومات';
+      popupContent.innerHTML = popupInfo;
+      popupOverlay.setPosition(clickedCoordinate);
+    } else {
+      popupOverlay.setPosition(undefined);
+    }
+  });
+
+  // تغيير المؤشر عند المرور على عنصر
+  map.on('pointermove', function(evt) {
+    if (evt.dragging) return;
+    const pixel = map.getEventPixel(evt.originalEvent);
+    const hit = map.hasFeatureAtPixel(pixel);
+    map.getTargetElement().style.cursor = hit ? 'pointer' : '';
   });
 
   // --- Fonction pour activer le dessin ---
@@ -539,16 +657,20 @@
       let text = "";
       if (geom.getType() === "Point") {
         const coord = ol.proj.toLonLat(geom.getCoordinates());
-        text = `خط الطول: ${coord[0].toFixed(6)}<br>خط العرض: ${coord[1].toFixed(6)}`;
+        text = `<div>📍 <strong>خط الطول:</strong> ${coord[0].toFixed(6)}</div>
+                <div>📍 <strong>خط العرض:</strong> ${coord[1].toFixed(6)}</div>`;
       } else if (geom.getType() === "LineString") {
         const length = ol.sphere.getLength(geom);
-        text = `الطول: ${(length/1000).toFixed(3)} كم (${length.toFixed(0)} م)`;
+        text = `<div>📏 <strong>الطول:</strong> ${(length/1000).toFixed(3)} كم</div>
+                <div>📐 <strong>بالمتر:</strong> ${length.toFixed(0)} م</div>`;
       } else if (geom.getType() === "Polygon") {
         const area = ol.sphere.getArea(geom);
-        text = `المساحة: ${area.toFixed(0)} م² (${(area/10000).toFixed(3)} هكتار، ${(area/1e6).toFixed(4)} كم²)`;
+        text = `<div>📐 <strong>المساحة:</strong> ${area.toFixed(0)} م²</div>
+                <div>🌾 <strong>بالهكتار:</strong> ${(area/10000).toFixed(3)} ها</div>
+                <div>🗺️ <strong>بالكم²:</strong> ${(area/1e6).toFixed(4)} كم²</div>`;
       }
 
-      feature.set('popup', `<b>${feature.get('name')}</b><br>${text}`);
+      feature.set('popup', `<b>${feature.get('name')}</b>${text}`);
       deactivateDraw();
     });
   }
@@ -579,7 +701,7 @@
   document.getElementById('clearAll').onclick = () => {
     if (confirm("⚠️ هل أنت متأكد من حذف جميع العناصر؟")) {
       source.clear();
-      overlay.setPosition(undefined);
+      popupOverlay.setPosition(undefined);
     }
   };
 
