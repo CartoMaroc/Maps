@@ -473,7 +473,7 @@
 
   <div id="footer">
     <span>🗺️</span>
-    <span>© www.cartomaroc.com / Daouairi Ayoub </span>
+    <span>© CartoMaroc - Daouairi Ayoub </span>
   </div>
 
   <div id="map"></div>
@@ -514,17 +514,13 @@
   const popupContent = document.getElementById('popup-content');
   const popupCloser = document.getElementById('popup-closer');
 
- const popupOverlay = new ol.Overlay({
-  element: popupElement,
-  autoPan: true,
-  autoPanAnimation: {
-    duration: 250
-  },
- positioning: 'bottom-center',
-offset: [0, -15]
-
-});
-
+  const popupOverlay = new ol.Overlay({
+    element: popupElement,
+    autoPan: true,
+    autoPanAnimation: {
+      duration: 250
+    }
+  });
 
   popupCloser.onclick = function() {
     popupOverlay.setPosition(undefined);
