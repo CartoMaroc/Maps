@@ -1,18 +1,9 @@
 <!DOCTYPE html>
-<!--
-Created using JS Bin
-http://jsbin.com
-
-Copyright (c) 2025 by anonymous (http://jsbin.com/xiwamofeyi/1/edit)
-
-Released under the MIT license: http://jsbin.mit-license.org
--->
-<meta name="robots" content="noindex">
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CartoMaroc - نظام معلومات جغرافية احترافي</title>
+<title>CartoMaroc </title>
 
 <!-- OpenLayers -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css">
@@ -42,8 +33,8 @@ Released under the MIT license: http://jsbin.mit-license.org
     left: 0;
     right: 0;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 5px 5px;
-    z-index: 1000;
+    padding: 15px 30px;
+    z-index: 2000;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -70,6 +61,42 @@ Released under the MIT license: http://jsbin.mit-license.org
     to { transform: rotate(360deg); }
   }
 
+  /* أزرار التحكم في العرض */
+  .header-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .toggle-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Cairo', sans-serif;
+  }
+
+  .toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  .toggle-btn.active {
+    background: rgba(255, 255, 255, 0.9);
+    color: #667eea;
+    border-color: white;
+  }
+
   /* شريط الأدوات الجانبي */
   #toolbar {
     position: absolute;
@@ -78,18 +105,25 @@ Released under the MIT license: http://jsbin.mit-license.org
     background: linear-gradient(145deg, #ffffff, #f0f0f0);
     padding: 15px;
     border-radius: 20px;
-    z-index: 1000;
+    z-index: 1500;
     box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     display: flex;
     flex-direction: column;
-    gap: '1'px;
+    gap: 12px;
     min-width: 180px;
+    transition: all 0.3s ease;
+  }
+
+  #toolbar.hidden {
+    transform: translateX(120%);
+    opacity: 0;
+    pointer-events: none;
   }
 
   .tool-section {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 8px;
   }
 
   .section-title {
@@ -153,20 +187,27 @@ Released under the MIT license: http://jsbin.mit-license.org
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     padding: 20px;
-    border-radius: 10px;
+    border-radius: 20px;
     z-index: 1500;
     box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     min-width: 250px;
     max-width: 300px;
+    transition: all 0.3s ease;
+  }
+
+  #info-panel.hidden {
+    transform: translateX(-120%);
+    opacity: 0;
+    pointer-events: none;
   }
 
   #info-panel h3 {
     color: #667eea;
-    font-size: 14px;
+    font-size: 18px;
     margin-bottom: 15px;
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 8px;
   }
 
   .info-item {
@@ -174,7 +215,7 @@ Released under the MIT license: http://jsbin.mit-license.org
     padding: 12px;
     border-radius: 10px;
     margin-bottom: 10px;
-    font-size: 10px;
+    font-size: 13px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
 
@@ -279,6 +320,16 @@ Released under the MIT license: http://jsbin.mit-license.org
     #header h1 {
       font-size: 18px;
     }
+
+    .header-controls {
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .toggle-btn {
+      padding: 6px 12px;
+      font-size: 11px;
+    }
   }
 </style>
 </head>
@@ -286,10 +337,20 @@ Released under the MIT license: http://jsbin.mit-license.org
   <div id="header">
     <h1>
       <span class="logo">🌍</span>
-      CartoMaroc - نظام معلومات جغرافية
+      CartoMaroc 
     </h1>
-    <div style="color: white; font-size: 14px;">
-      <span class="pulse">⚡</span> نظام احترافي
+    <div class="header-controls">
+      <button class="toggle-btn active" id="toggleToolbar">
+        <span>🛠️</span>
+        <span>الأدوات</span>
+      </button>
+      <button class="toggle-btn active" id="toggleInfo">
+        <span>📊</span>
+        <span>الإحصائيات</span>
+      </button>
+      <div style="color: white; font-size: 14px; margin-right: 10px;">
+        <span class="pulse">⚡</span> نظام احترافي
+      </div>
     </div>
   </div>
 
@@ -397,6 +458,19 @@ Released under the MIT license: http://jsbin.mit-license.org
   });
   overlay.getElement().className = 'ol-tooltip ol-tooltip-static';
   map.addOverlay(overlay);
+
+  // --- أزرار إخفاء/إظهار اللوحات ---
+  document.getElementById('toggleToolbar').onclick = function() {
+    const toolbar = document.getElementById('toolbar');
+    toolbar.classList.toggle('hidden');
+    this.classList.toggle('active');
+  };
+
+  document.getElementById('toggleInfo').onclick = function() {
+    const infoPanel = document.getElementById('info-panel');
+    infoPanel.classList.toggle('hidden');
+    this.classList.toggle('active');
+  };
 
   // --- تحديث الإحصائيات ---
   function updateStats() {
