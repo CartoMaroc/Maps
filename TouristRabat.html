@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<!--
+Created using JS Bin
+http://jsbin.com
+
+Copyright (c) 2025 by anonymous (http://jsbin.com/xiwamofeyi/1/edit)
+
+Released under the MIT license: http://jsbin.mit-license.org
+-->
+<meta name="robots" content="noindex">
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CartoMaroc - نظام معلومات جغرافية احترافي</title>
+
+<!-- OpenLayers -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css">
+<script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  html, body { 
+    height: 100%; 
+    font-family: 'Cairo', sans-serif;
+    overflow: hidden;
+  }
+  
+  #map { 
+    width: 100%; 
+    height: 100vh;
+    position: relative;
+  }
+
+  /* شريط العنوان */
+  #header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 15px 30px;
+    z-index: 2000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+
+  #header h1 {
+    color: white;
+    font-size: 24px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+  }
+
+  #header .logo {
+    font-size: 32px;
+    animation: rotate 3s linear infinite;
+  }
+
+  @keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* شريط الأدوات الجانبي */
+  #toolbar {
+    position: absolute;
+    right: 20px;
+    top: 90px;
+    background: linear-gradient(145deg, #ffffff, #f0f0f0);
+    padding: 15px;
+    border-radius: 20px;
+    z-index: 1500;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 180px;
+  }
+
+  .tool-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    text-align: center;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: 'Cairo', sans-serif;
+  }
+
+  button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+  }
+
+  button.active {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    transform: scale(1.05);
+    box-shadow: 0 6px 25px rgba(245, 87, 108, 0.5);
+  }
+
+  button.danger {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  }
+
+  button.success {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #ddd, transparent);
+    margin: 4px 0;
+  }
+
+  /* لوحة المعلومات */
+  #info-panel {
+    position: absolute;
+    left: 20px;
+    top: 90px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 20px;
+    z-index: 1500;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    min-width: 250px;
+    max-width: 300px;
+  }
+
+  #info-panel h3 {
+    color: #667eea;
+    font-size: 18px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .info-item {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .info-label {
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 4px;
+  }
+
+  .info-value {
+    color: #667eea;
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  /* التوقيع */
+  #footer {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240,240,240,0.95) 100%);
+    backdrop-filter: blur(10px);
+    padding: 10px 25px;
+    border-radius: 25px;
+    font-weight: 700;
+    z-index: 1500;
+    font-size: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #667eea;
+  }
+
+  .pulse {
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Tooltip محسّن */
+  .ol-tooltip {
+    position: absolute;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 10px;
+    white-space: nowrap;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    font-size: 13px;
+  }
+
+  .ol-tooltip-static {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    border: 2px solid white;
+  }
+
+  /* تأثيرات الحركة */
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideInLeft {
+    from {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  #toolbar {
+    animation: slideInRight 0.5s ease-out;
+  }
+
+  #info-panel {
+    animation: slideInLeft 0.5s ease-out;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    #toolbar, #info-panel {
+      position: fixed;
+      max-width: 90%;
+    }
+    
+    #header h1 {
+      font-size: 18px;
+    }
+  }
+</style>
+</head>
+<body>
+  <div id="header">
+    <h1>
+      <span class="logo">🌍</span>
+      CartoMaroc - نظام معلومات جغرافية
+    </h1>
+    <div style="color: white; font-size: 14px;">
+      <span class="pulse">⚡</span> نظام احترافي
+    </div>
+  </div>
+
+  <div id="toolbar">
+    <div class="tool-section">
+      <div class="section-title">أدوات الرسم</div>
+      <button id="drawPoint">📍 نقطة</button>
+      <button id="drawLine">📏 خط</button>
+      <button id="drawPolygon">⬠ مضلع</button>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <div class="tool-section">
+      <div class="section-title">الإدارة</div>
+      <button id="deleteFeature" class="danger">🧹 حذف</button>
+      <button id="clearAll" class="danger">🗑 مسح الكل</button>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <div class="tool-section">
+      <div class="section-title">التصدير</div>
+      <button id="downloadGeoJSON" class="success">💾 حفظ GeoJSON</button>
+    </div>
+  </div>
+
+  <div id="info-panel">
+    <h3>📊 الإحصائيات</h3>
+    <div class="info-item">
+      <div class="info-label">عدد النقاط</div>
+      <div class="info-value" id="pointCount">0</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">عدد الخطوط</div>
+      <div class="info-value" id="lineCount">0</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">عدد المضلعات</div>
+      <div class="info-value" id="polygonCount">0</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">إجمالي العناصر</div>
+      <div class="info-value" id="totalCount">0</div>
+    </div>
+  </div>
+
+  <div id="footer">
+    <span>🗺️</span>
+    <span>© CartoMaroc 2025 - Powered by OpenLayers</span>
+  </div>
+
+  <div id="map"></div>
+
+<script>
+  // --- Base Layers ---
+  const satellite = new ol.layer.Tile({
+    source: new ol.source.XYZ({
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      attributions: 'Source: Esri, Earthstar Geographics'
+    })
+  });
+
+  const labels = new ol.layer.Tile({
+    source: new ol.source.XYZ({
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      attributions: 'Esri - Boundaries & Places'
+    })
+  });
+
+  // --- Couche de dessin ---
+  const source = new ol.source.Vector();
+  const vector = new ol.layer.Vector({
+    source: source,
+    style: new ol.style.Style({
+      fill: new ol.style.Fill({color: 'rgba(102, 126, 234, 0.3)'}),
+      stroke: new ol.style.Stroke({color: '#667eea', width: 3}),
+      image: new ol.style.Circle({
+        radius: 8, 
+        fill: new ol.style.Fill({color: '#f5576c'}),
+        stroke: new ol.style.Stroke({color: 'white', width: 2})
+      })
+    })
+  });
+
+  // --- Initialisation de la carte ---
+  const map = new ol.Map({
+    target: 'map',
+    layers: [satellite, labels, vector],
+    view: new ol.View({ 
+      center: ol.proj.fromLonLat([-7.5898, 33.5731]), // Casablanca
+      zoom: 7 
+    })
+  });
+
+  let draw = null;
+  let activeButton = null;
+  let deleteMode = false;
+
+  // --- Tooltip ---
+  const overlay = new ol.Overlay({
+    element: document.createElement('div'),
+    offset: [0, -15],
+    positioning: 'bottom-center'
+  });
+  overlay.getElement().className = 'ol-tooltip ol-tooltip-static';
+  map.addOverlay(overlay);
+
+  // --- تحديث الإحصائيات ---
+  function updateStats() {
+    const features = source.getFeatures();
+    let points = 0, lines = 0, polygons = 0;
+    
+    features.forEach(f => {
+      const type = f.getGeometry().getType();
+      if (type === 'Point') points++;
+      else if (type === 'LineString') lines++;
+      else if (type === 'Polygon') polygons++;
+    });
+    
+    document.getElementById('pointCount').textContent = points;
+    document.getElementById('lineCount').textContent = lines;
+    document.getElementById('polygonCount').textContent = polygons;
+    document.getElementById('totalCount').textContent = features.length;
+  }
+
+  source.on('addfeature', updateStats);
+  source.on('removefeature', updateStats);
+
+  // --- Clic sur la carte ---
+  map.on('click', function(evt) {
+    if (draw) return;
+
+    if (deleteMode) {
+      map.forEachFeatureAtPixel(evt.pixel, function(feature) {
+        if (confirm("🧹 هل تريد حذف هذا العنصر؟")) {
+          source.removeFeature(feature);
+        }
+      });
+      return;
+    }
+
+    overlay.setPosition(undefined);
+    map.forEachFeatureAtPixel(evt.pixel, function(feature) {
+      const coord = evt.coordinate;
+      overlay.getElement().innerHTML = feature.get('popup') || '';
+      overlay.setPosition(coord);
+    });
+  });
+
+  // --- Fonction pour activer le dessin ---
+  function toggleDraw(type, buttonId) {
+    const button = document.getElementById(buttonId);
+    if (activeButton === button) {
+      deactivateDraw();
+      return;
+    }
+    deactivateDraw();
+    deleteMode = false;
+    document.getElementById('deleteFeature').classList.remove('active');
+
+    activeButton = button;
+    button.classList.add('active');
+    draw = new ol.interaction.Draw({ source: source, type: type });
+    map.addInteraction(draw);
+
+    draw.on('drawend', function(e) {
+      const feature = e.feature;
+      const geom = feature.getGeometry();
+      const name = prompt("📝 أدخل اسم العنصر:", "عنصر_" + (source.getFeatures().length + 1));
+      feature.set('name', name || "عنصر");
+
+      let text = "";
+      if (geom.getType() === "Point") {
+        const coord = ol.proj.toLonLat(geom.getCoordinates());
+        text = `خط الطول: ${coord[0].toFixed(6)}<br>خط العرض: ${coord[1].toFixed(6)}`;
+      } else if (geom.getType() === "LineString") {
+        const length = ol.sphere.getLength(geom);
+        text = `الطول: ${(length/1000).toFixed(3)} كم (${length.toFixed(0)} م)`;
+      } else if (geom.getType() === "Polygon") {
+        const area = ol.sphere.getArea(geom);
+        text = `المساحة: ${area.toFixed(0)} م² (${(area/10000).toFixed(3)} هكتار، ${(area/1e6).toFixed(4)} كم²)`;
+      }
+
+      feature.set('popup', `<b>${feature.get('name')}</b><br>${text}`);
+      deactivateDraw();
+    });
+  }
+
+  
+  // --- Popup ---
+const container = document.getElementById('popup');
+const content = document.getElementById('popup-content');
+const closer = document.getElementById('popup-closer');
+
+const popup = new ol.Overlay({
+  element: container,
+  autoPan: true,
+  autoPanAnimation: { duration: 250 },
+  positioning: 'bottom-center' // 👈 مهم جداً لتمركز النافذة فوق النقطة
+});
+map.addOverlay(popup);
+
+closer.onclick = function () {
+  popup.setPosition(undefined);
+  closer.blur();
+  return false;
+};
+
+// --- عند الضغط على الخريطة ---
+map.on('click', function (evt) {
+  if (draw) return;
+
+  if (deleteMode) {
+    map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+      if (confirm("🧹 هل تريد حذف هذا العنصر؟")) {
+        source.removeFeature(feature);
+      }
+    });
+    return;
+  }
+
+  // إخفاء أي Popup سابق
+  popup.setPosition(undefined);
+
+  // تحديد العنصر الذي تم النقر عليه
+  const feature = map.forEachFeatureAtPixel(evt.pixel, function (f) { return f; });
+
+  if (feature) {
+    const coord = evt.coordinate;
+    const html = feature.get('popup') || '<i>لا توجد معلومات</i>';
+    content.innerHTML = html;
+
+    // ⚙️ ضبط موضع النافذة فوق العنصر مباشرة
+    popup.setPosition(coord);
+
+    // 📍 إذا كانت النقطة في الأطراف، قم بتحريك الخريطة لتكون في المنتصف
+    const view = map.getView();
+    const extent = view.calculateExtent(map.getSize());
+    if (!ol.extent.containsCoordinate(extent, coord)) {
+      view.animate({ center: coord, duration: 400 });
+    }
+  }
+});
+
+  
+  // --- Désactivation du dessin ---
+  function deactivateDraw() {
+    if (draw) {
+      map.removeInteraction(draw);
+      draw = null;
+    }
+    if (activeButton) {
+      activeButton.classList.remove('active');
+      activeButton = null;
+    }
+  }
+
+  // --- Boutons ---
+  document.getElementById('drawPoint').onclick = () => toggleDraw('Point', 'drawPoint');
+  document.getElementById('drawLine').onclick = () => toggleDraw('LineString', 'drawLine');
+  document.getElementById('drawPolygon').onclick = () => toggleDraw('Polygon', 'drawPolygon');
+
+  document.getElementById('deleteFeature').onclick = function() {
+    deactivateDraw();
+    deleteMode = !deleteMode;
+    this.classList.toggle('active');
+  };
+
+  document.getElementById('clearAll').onclick = () => {
+    if (confirm("⚠️ هل أنت متأكد من حذف جميع العناصر؟")) {
+      source.clear();
+      overlay.setPosition(undefined);
+    }
+  };
+
+  document.getElementById('downloadGeoJSON').onclick = () => {
+    if (source.getFeatures().length === 0) {
+      alert("⚠️ لا توجد عناصر للحفظ!");
+      return;
+    }
+    const format = new ol.format.GeoJSON();
+    const json = format.writeFeatures(source.getFeatures(), {
+      featureProjection: map.getView().getProjection(),
+      dataProjection: 'EPSG:4326'
+    });
+    const blob = new Blob([json], {type: "application/geo+json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const date = new Date().toISOString().slice(0,19).replace(/[T:]/g,"-");
+    a.download = "CartoMaroc_"+date+".geojson";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // تهيئة الإحصائيات عند التحميل
+  updateStats();
+</script>
+</body>
+</html>
