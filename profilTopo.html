@@ -398,7 +398,7 @@ function downloadPNG(scaleFactor = 2) {
   setTimeout(() => {
     const dataURL = tempCanvas.toDataURL('image/png', 1.0);
     const link = document.createElement('a');
-    link.download = `terrain-profile-${scaleFactor === 1 ? 'normal' : 'hd'}.png`;
+    link.download = `CartoMaroc-Graphe-${scaleFactor === 1 ? 'normal' : 'hd'}.png`;
     link.href = dataURL;
     link.click();
     tempChart.destroy();
