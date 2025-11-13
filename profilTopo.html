@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<!--
+Created using JS Bin
+http://jsbin.com
+
+Copyright (c) 2025 by anonymous (http://jsbin.com/bavigedise/1/edit)
+
+Released under the MIT license: http://jsbin.mit-license.org
+-->
+<meta name="robots" content="noindex">
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Route Elevation Profile - Leaflet + Open-Elevation</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Leaflet Draw -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+  <!-- Turf -->
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    html, body, #map { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    #map { width: 100%; height: 65%; }
+    #controls {
+      padding: 8px;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    #profileContainer { padding: 8px; height: 35%; display: flex; gap: 10px; }
+    #chartBox { flex: 1; background: #fff; padding: 6px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+    #infoBox { width: 300px; background: #fff; padding: 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); text-align:center; }
+    .btn { display:inline-block; padding:6px 10px; margin:4px 2px; border-radius:4px; background:#2d6cdf; color:#fff; text-decoration:none; cursor:pointer; font-size:13px; }
+    .btn.secondary { background:#6c757d; }
+    #status { font-size:13px; margin-top:6px; color:#333; }
+    .small { font-size:12px; color:#555; }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="controls">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+    <div>
+      <strong>Route Elevation Tool</strong> <span class="small">— draw a route with the draw tool (polyline)</span>
+    </div>
+    <div>
+      <button id="clearBtn" class="btn secondary">Clear</button>
+      <button id="sampleSettingsBtn" class="btn">Sampling: 50 m</button>
+    </div>
+  </div>
+</div>
+
+<div id="profileContainer">
+  <div id="chartBox">
+    <canvas id="elevChart"></canvas>
+    <div id="status"></div>
+  </div>
+
+  <div id="infoBox">
+    <div style="margin-top:10px;">
+      <a id="downloadPng" class="btn" href="#" download="elevation_profile.png">Download PNG</a><br>
+      <a id="downloadCsv" class="btn" href="#" download="elevation_profile.csv">Download CSV</a>
+    </div>
+    <hr>
+    <div class="small" style="margin-top:8px; line-height:1.4;">
+      للمزيد من الأدوات <b></b> زورو موقعنا<br>
+      <a href="https://www.cartomaroc.com" target="_blank" style="color:#2d6cdf; text-decoration:none;">www.cartomaroc.com</a>
+    </div>
+  </div>
+</div>
+
+<script>
+
+  var map = L.map('map').setView([31.0, -7.5], 6);
+
+  var sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19
+  }).addTo(map);
+
+  var labels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19
+  }).addTo(map);
+
+  var drawnItems = new L.FeatureGroup().addTo(map);
+
+  var drawControl = new L.Control.Draw({
+    draw: {
+      polyline: { shapeOptions: { color: '#FF5722', weight:4 }},
+      polygon: false, circle: false, rectangle:false, marker:false, circlemarker:false
+    },
+    edit: { featureGroup: drawnItems, remove:true }
+  });
+  map.addControl(drawControl);
+
+  var currentLine=null;
+  var sampleDistanceMeters=50;
+
+  var ctx = document.getElementById('elevChart').getContext('2d');
+  var chart = new Chart(ctx,{
+    type:'line',
+    data:{labels:[],datasets:[{
+      label:'Elevation (m)',
+      data:[],
+      borderColor:'red',
+      borderWidth:2,
+      tension:0.42,
+      pointRadius:0
+    }]},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      animation:false,
+      devicePixelRatio:2
+    }
+  });
+
+  map.on(L.Draw.Event.CREATED,function(e){
+    drawnItems.clearLayers();
+    drawnItems.addLayer(e.layer);
+    currentLine=e.layer;
+    processRoute(e.layer);
+  });
+
+  document.getElementById('clearBtn').onclick=()=>{
+    drawnItems.clearLayers(); clearProfile();
+  };
+
+  document.getElementById('sampleSettingsBtn').onclick=function(){
+    var arr=[25,50,100,200];
+    var i=arr.indexOf(sampleDistanceMeters);
+    sampleDistanceMeters=arr[(i+1)%arr.length];
+    this.textContent='Sampling: '+sampleDistanceMeters+' m';
+    if(currentLine) processRoute(currentLine);
+  };
+
+  async function processRoute(layer){
+    var geo=layer.toGeoJSON();
+    var lengthKm=turf.length(geo,{units:'kilometers'});
+    var sampleCount=Math.ceil((lengthKm*1000)/sampleDistanceMeters)+1;
+    if(sampleCount>600) sampleCount=600;
+
+    var samples=[],dist=[];
+    for(var i=0;i<sampleCount;i++){
+      var d=(i/(sampleCount-1))*lengthKm;
+      var pt=turf.along(geo,d,{units:'kilometers'});
+      samples.push([pt.geometry.coordinates[0],pt.geometry.coordinates[1]]);
+      dist.push(d);
+    }
+
+    var locs=samples.map(c=>({latitude:c[1],longitude:c[0]}));
+    var resp=await fetch("https://api.open-elevation.com/api/v1/lookup",{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({locations:locs})
+    });
+    var json=await resp.json();
+    var elev=json.results.map(r=>r.elevation);
+
+    chart.data.labels=dist.map(d=>d.toFixed(3));
+    chart.data.datasets[0].data=elev;
+    chart.update();
+
+    setTimeout(()=>{ document.getElementById("downloadPng").href=chart.toBase64Image(); },200);
+
+    var csv="distance_km,elevation_m\n";
+    for(let i=0;i<dist.length;i++){ csv+=dist[i]+","+elev[i]+"\n"; }
+    var blob=new Blob([csv],{type:'text/csv'});
+    document.getElementById("downloadCsv").href=URL.createObjectURL(blob);
+  }
+
+  function clearProfile(){ chart.data.labels=[]; chart.data.datasets[0].data=[]; chart.update(); }
+
+</script>
+</body>
+</html>
