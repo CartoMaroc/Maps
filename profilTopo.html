@@ -437,6 +437,14 @@ function downloadGeoJSON() {
   link.click();
 }
 document.getElementById('downloadGeoJSONPanel').onclick = downloadGeoJSON;
+  // ✅ ربط أزرار تحميل الصور بالدالة الصحيحة
+document.getElementById('downloadPNGPanel').onclick = function() {
+  downloadPNG(2); // نسخة HD
+};
+document.getElementById('downloadPNGNormalPanel').onclick = function() {
+  downloadPNG(1); // نسخة عادية
+};
+
 
 </script>
 </body>
