@@ -252,7 +252,7 @@
         }
         if (t === 'ecotourism') {
           return new ol.style.Style({
-            text: new ol.style.Text({ text: '🌿', font: '28px sans-serif' })
+            text: new ol.style.Text({ text: '🌳', font: '28px sans-serif' })
           });
         }
         if (t === 'cultural tourism') {
@@ -315,7 +315,7 @@
         const t = type.toLowerCase();
         if (t === 'stade') icon = '<span class="legend-icon">🏟️</span>';
         else if (t === 'gare') icon = '<span class="legend-icon">🚉</span>';
-        else if (t === 'ecotourism') icon = '<span class="legend-icon">🌿</span>';
+        else if (t === 'ecotourism') icon = '<span class="legend-icon">🌳</span>';
         else if (t === 'cultural tourism') icon = '<span class="legend-icon">🏛️</span>';
         else icon = `<span class="legend-color" style="background:${typeStyles[type].color}"></span>`;
         
