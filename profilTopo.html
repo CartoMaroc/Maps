@@ -1,185 +1,442 @@
 <!DOCTYPE html>
-<!--
-Created using JS Bin
-http://jsbin.com
-
-Copyright (c) 2025 by anonymous (http://jsbin.com/bavigedise/1/edit)
-
-Released under the MIT license: http://jsbin.mit-license.org
--->
-<meta name="robots" content="noindex">
-<html lang="en">
+<html lang="ar">
 <head>
-  <meta charset="utf-8" />
-  <title>Route Elevation Profile - Leaflet + Open-Elevation</title>
+<meta charset="utf-8" />
+<title>مقطع عرضي للتضاريس - CartoMaroc</title>
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Leaflet Draw -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<!-- Leaflet Draw -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
-  <!-- Turf -->
-  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+html,body {margin:0;height:100%;font-family:'Cairo',sans-serif;background:#f2f2f2;}
+#map {height:50vh;width:100%;position:relative;}
+#profileContainer {height:50vh;width:100%;background:#fff;padding:20px;box-sizing:border-box;}
+#topBar {
+  background:#fff;padding:6px 12px;
+  display:flex;justify-content:space-between;align-items:center;
+  box-shadow:0 1px 4px rgba(0,0,0,0.25);
+}
+.btn {
+  background:#961748;color:#fff;border:none;border-radius:4px;
+  padding:6px 10px;cursor:pointer;font-size:13px;margin-left:5px;
+}
+.small {font-size:12px;color:#444;}
+#chartCanvas {max-height:calc(50vh - 40px);}
+#info {margin-top:10px;font-size:13px;color:#666;}
 
-  <style>
-    html, body, #map { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-    #map { width: 100%; height: 65%; }
-    #controls {
-      padding: 8px;
-      background: #fff;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-      position: relative;
-    }
-    #profileContainer { padding: 8px; height: 35%; display: flex; gap: 10px; }
-    #chartBox { flex: 1; background: #fff; padding: 6px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
-    #infoBox { width: 300px; background: #fff; padding: 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); text-align:center; }
-    .btn { display:inline-block; padding:6px 10px; margin:4px 2px; border-radius:4px; background:#2d6cdf; color:#fff; text-decoration:none; cursor:pointer; font-size:13px; }
-    .btn.secondary { background:#6c757d; }
-    #status { font-size:13px; margin-top:6px; color:#333; }
-    .small { font-size:12px; color:#555; }
-  </style>
+/* لوحة المعلومات في الأسفل */
+#infoPanel {
+  position:absolute;
+  bottom:20px;
+  right:20px;
+  background:#fff;
+  border:5px solid #7B3FF2;
+  border-radius:15px;
+  padding:12px 15px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.3);
+  z-index:1000;
+  min-width:180px;
+  font-family:'Cairo',sans-serif;
+  transform: scale(0.8);
+}
+#infoPanel .panel-btn {
+  background:#961748;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  padding:6px 12px;
+  cursor:pointer;
+  font-size:12px;
+  font-family:'Cairo',sans-serif;
+  width:100%;
+  margin:4px 0;
+  font-weight:bold;
+}
+#infoPanel .panel-btn:hover {
+  background:#7a1239;
+}
+#infoPanel .sampling-info {
+  font-size:11px;
+  color:#333;
+  margin:6px 0 2px 0;
+  text-align:center;
+  font-weight:bold;
+}
+#infoPanel .sampling-select {
+  width:100%;
+  padding:5px;
+  border:2px solid #7B3FF2;
+  border-radius:6px;
+  font-family:'Cairo',sans-serif;
+  font-size:11px;
+  font-weight:bold;
+  text-align:center;
+  margin:2px 0 6px 0;
+  cursor:pointer;
+}
+#infoPanel .website-info {
+  font-size:10px;
+  color:#7B3FF2;
+  margin-top:8px;
+  text-align:center;
+  border-top:2px solid #7B3FF2;
+  padding-top:6px;
+  font-size: 18px;
+  font-family:'Cairo';
+}
+#infoPanel .website-link {
+  color:#961748;
+  text-decoration:none;
+  font-weight:bold;
+  font-size: 18px;
+  font-family:'Cairo';
+}
+</style>
 </head>
 <body>
 
-<div id="map"></div>
+<div id="topBar">
+  <div><b>📊 مقطع عرضي للتضاريس</b> <span class="small">ارسم خطًا على الخريطة لرؤية المقطع العرضي</span></div>
+</div>
 
-<div id="controls">
-  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-    <div>
-      <strong>Route Elevation Tool</strong> <span class="small">— draw a route with the draw tool (polyline)</span>
-    </div>
-    <div>
-      <button id="clearBtn" class="btn secondary">Clear</button>
-      <button id="sampleSettingsBtn" class="btn">Sampling: 50 m</button>
+<div id="map">
+  <!-- لوحة المعلومات -->
+  <div id="infoPanel">
+    <button class="panel-btn" id="clearBtnPanel">🗑️ Clear</button>
+    <div class="sampling-info">Sampling:</div>
+    <select class="sampling-select" id="samplingSelect">
+      <option value="200">200 m</option>
+      <option value="100">100 m</option>
+      <option value="50">50 m</option>
+      <option value="20">20 m</option>
+    </select>
+    <button class="panel-btn" id="downloadPNGPanel">📥 PNG (HD)</button>
+    <button class="panel-btn" id="downloadPNGNormalPanel">📥 PNG (Normal)</button>
+    <button class="panel-btn" id="downloadCSVPanel">📊 CSV</button>
+    <button class="panel-btn" id="downloadGeoJSONPanel">🌍 GeoJSON</button>
+    <div class="website-info">
+      للمزيد من الأدوات زوروا موقعنا<br>
+      <a href="https://www.cartomaroc.com" target="_blank" class="website-link">www.cartomaroc.com</a>
     </div>
   </div>
 </div>
-
 <div id="profileContainer">
-  <div id="chartBox">
-    <canvas id="elevChart"></canvas>
-    <div id="status"></div>
-  </div>
-
-  <div id="infoBox">
-    <div style="margin-top:10px;">
-      <a id="downloadPng" class="btn" href="#" download="elevation_profile.png">Download PNG</a><br>
-      <a id="downloadCsv" class="btn" href="#" download="elevation_profile.csv">Download CSV</a>
-    </div>
-    <hr>
-    <div class="small" style="margin-top:8px; line-height:1.4;">
-      للمزيد من الأدوات <b></b> زورو موقعنا<br>
-      <a href="https://www.cartomaroc.com" target="_blank" style="color:#2d6cdf; text-decoration:none;">www.cartomaroc.com</a>
-    </div>
-  </div>
+  <canvas id="chartCanvas"></canvas>
+  <div id="info"></div>
 </div>
 
 <script>
+// إعداد خريطة Leaflet
+var map = L.map('map').setView([31.7917, -7.0926], 8); // المغرب
+var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 19,
+  attribution: 'Esri'
+}).addTo(map);
+var labels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 19
+}).addTo(map);
 
-  var map = L.map('map').setView([31.0, -7.5], 6);
+// أدوات الرسم
+var drawnItems = new L.FeatureGroup().addTo(map);
+var drawControl = new L.Control.Draw({
+  draw: {
+    polyline: { shapeOptions: { color: '#961748', weight: 3 } },
+    polygon: false, rectangle: false, circle: false, marker: false, circlemarker: false
+  },
+  edit: { featureGroup: drawnItems, remove: true }
+});
+map.addControl(drawControl);
 
-  var sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 19
-  }).addTo(map);
+// متغيرات عامة
+let chart = null;
+let currentProfileData = null;
+let currentLayer = null;
+let samplingDistance = 200;
 
-  var labels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 19
-  }).addTo(map);
+// دالة حساب المسافة (Haversine)
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
 
-  var drawnItems = new L.FeatureGroup().addTo(map);
-
-  var drawControl = new L.Control.Draw({
-    draw: {
-      polyline: { shapeOptions: { color: '#FF5722', weight:4 }},
-      polygon: false, circle: false, rectangle:false, marker:false, circlemarker:false
-    },
-    edit: { featureGroup: drawnItems, remove:true }
-  });
-  map.addControl(drawControl);
-
-  var currentLine=null;
-  var sampleDistanceMeters=50;
-
-  var ctx = document.getElementById('elevChart').getContext('2d');
-  var chart = new Chart(ctx,{
-    type:'line',
-    data:{labels:[],datasets:[{
-      label:'Elevation (m)',
-      data:[],
-      borderColor:'red',
-      borderWidth:2,
-      tension:0.42,
-      pointRadius:0
-    }]},
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      animation:false,
-      devicePixelRatio:2
+// توليد نقاط متساوية على الخط
+function interpolatePoints(coords, samplingDist = 200) {
+  const points = [];
+  points.push(coords[0]);
+  for (let i = 0; i < coords.length - 1; i++) {
+    const [lon1, lat1] = coords[i];
+    const [lon2, lat2] = coords[i + 1];
+    const segmentDist = getDistance(lat1, lon1, lat2, lon2);
+    const numPoints = Math.max(1, Math.floor(segmentDist / samplingDist));
+    for (let j = 1; j <= numPoints; j++) {
+      const t = j / numPoints;
+      const lat = lat1 + (lat2 - lat1) * t;
+      const lon = lon1 + (lon2 - lon1) * t;
+      points.push([lon, lat]);
     }
-  });
+  }
+  return points;
+}
 
-  map.on(L.Draw.Event.CREATED,function(e){
-    drawnItems.clearLayers();
-    drawnItems.addLayer(e.layer);
-    currentLine=e.layer;
-    processRoute(e.layer);
-  });
+// بناء المقطع العرضي
+async function buildProfile(geojson) {
+  document.getElementById('info').innerHTML = '<i>جاري جلب بيانات الارتفاع...</i>';
+  const coords = geojson.geometry.coordinates;
+  const interpolatedCoords = interpolatePoints(coords, samplingDistance);
+  const locs = interpolatedCoords.map(c => ({ latitude: c[1], longitude: c[0] }));
 
-  document.getElementById('clearBtn').onclick=()=>{
-    drawnItems.clearLayers(); clearProfile();
-  };
-
-  document.getElementById('sampleSettingsBtn').onclick=function(){
-    var arr=[25,50,100,200];
-    var i=arr.indexOf(sampleDistanceMeters);
-    sampleDistanceMeters=arr[(i+1)%arr.length];
-    this.textContent='Sampling: '+sampleDistanceMeters+' m';
-    if(currentLine) processRoute(currentLine);
-  };
-
-  async function processRoute(layer){
-    var geo=layer.toGeoJSON();
-    var lengthKm=turf.length(geo,{units:'kilometers'});
-    var sampleCount=Math.ceil((lengthKm*1000)/sampleDistanceMeters)+1;
-    if(sampleCount>600) sampleCount=600;
-
-    var samples=[],dist=[];
-    for(var i=0;i<sampleCount;i++){
-      var d=(i/(sampleCount-1))*lengthKm;
-      var pt=turf.along(geo,d,{units:'kilometers'});
-      samples.push([pt.geometry.coordinates[0],pt.geometry.coordinates[1]]);
-      dist.push(d);
-    }
-
-    var locs=samples.map(c=>({latitude:c[1],longitude:c[0]}));
-    var resp=await fetch("https://api.open-elevation.com/api/v1/lookup",{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({locations:locs})
+  try {
+    const response = await fetch("https://api.open-elevation.com/api/v1/lookup", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ locations: locs })
     });
-    var json=await resp.json();
-    var elev=json.results.map(r=>r.elevation);
+    const data = await response.json();
+    const elevations = data.results.map(r => r.elevation);
 
-    chart.data.labels=dist.map(d=>d.toFixed(3));
-    chart.data.datasets[0].data=elev;
-    chart.update();
+    const distances = [0];
+    let totalDistance = 0;
+    for (let i = 1; i < interpolatedCoords.length; i++) {
+      const dist = getDistance(
+        interpolatedCoords[i-1][1], interpolatedCoords[i-1][0],
+        interpolatedCoords[i][1], interpolatedCoords[i][0]
+      );
+      totalDistance += dist;
+      distances.push(totalDistance);
+    }
 
-    setTimeout(()=>{ document.getElementById("downloadPng").href=chart.toBase64Image(); },200);
+    const distancesKm = distances.map(d => (d / 1000).toFixed(2));
+    const minElev = Math.min(...elevations).toFixed(0);
+    const maxElev = Math.max(...elevations).toFixed(0);
+    const avgElev = (elevations.reduce((a, b) => a + b, 0) / elevations.length).toFixed(0);
+    const totalDistKm = (totalDistance / 1000).toFixed(2);
 
-    var csv="distance_km,elevation_m\n";
-    for(let i=0;i<dist.length;i++){ csv+=dist[i]+","+elev[i]+"\n"; }
-    var blob=new Blob([csv],{type:'text/csv'});
-    document.getElementById("downloadCsv").href=URL.createObjectURL(blob);
+    document.getElementById('info').innerHTML = `
+      <b>معلومات المقطع:</b> 
+      المسافة الكلية: ${totalDistKm} كم | 
+      أدنى ارتفاع: ${minElev} م | 
+      أعلى ارتفاع: ${maxElev} م | 
+      متوسط الارتفاع: ${avgElev} م
+    `;
+
+    drawChart(distancesKm, elevations);
+    currentProfileData = { distances: distancesKm, elevations, coords: interpolatedCoords };
+  } catch (error) {
+    document.getElementById('info').innerHTML = '<span style="color:red;">خطأ في جلب البيانات. حاول مرة أخرى.</span>';
+    console.error(error);
+  }
+}
+
+// رسم المخطط
+function drawChart(distances, elevations) {
+  const ctx = document.getElementById('chartCanvas').getContext('2d');
+  if (chart) chart.destroy();
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+  gradient.addColorStop(0, 'rgba(150, 23, 72, 0.5)');
+  gradient.addColorStop(1, 'rgba(150, 23, 72, 0.1)');
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: distances,
+      datasets: [{
+        label: 'الارتفاع (متر)',
+        data: elevations, // ✅ الإصلاح هنا
+        borderColor: '#961748',
+        backgroundColor: gradient,
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: '#961748'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { font: { family: 'Cairo', size: 12 } }
+        },
+        tooltip: {
+          callbacks: {
+            title: function(context) {
+              return 'المسافة: ' + context[0].label + ' كم';
+            },
+            label: function(context) {
+              return 'الارتفاع: ' + context.parsed.y.toFixed(0) + ' م';
+            }
+          },
+          titleFont: { family: 'Cairo' },
+          bodyFont: { family: 'Cairo' }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'المسافة (كم)', font: { family: 'Cairo', size: 14 } },
+          ticks: { font: { family: 'Cairo' } }
+        },
+        y: {
+          title: { display: true, text: 'الارتفاع (متر)', font: { family: 'Cairo', size: 14 } },
+          ticks: { font: { family: 'Cairo' } },
+          beginAtZero: false
+        }
+      }
+    }
+  });
+}
+
+
+// عند رسم خط جديد
+map.on(L.Draw.Event.CREATED, function(e) {
+  drawnItems.clearLayers();
+  drawnItems.addLayer(e.layer);
+  currentLayer = e.layer;
+  const geo = e.layer.toGeoJSON();
+  buildProfile(geo);
+});
+
+// عند تغيير مسافة العينات
+document.getElementById('samplingSelect').onchange = function() {
+  samplingDistance = parseInt(this.value);
+  if (currentLayer) {
+    const geo = currentLayer.toGeoJSON();
+    buildProfile(geo);
+  }
+};
+
+// زر المسح
+function clearAll() {
+  drawnItems.clearLayers();
+  if (chart) {
+    chart.destroy();
+    chart = null;
+  }
+  currentProfileData = null;
+  currentLayer = null;
+  document.getElementById('info').innerHTML = '';
+}
+document.getElementById('clearBtnPanel').onclick = clearAll;
+
+// تنزيل PNG
+function downloadPNG(scaleFactor = 2) {
+  if (!chart) {
+    alert('الرجاء رسم خط على الخريطة أولاً');
+    return;
   }
 
-  function clearProfile(){ chart.data.labels=[]; chart.data.datasets[0].data=[]; chart.update(); }
+  const originalCanvas = document.getElementById('chartCanvas');
+  const tempCanvas = document.createElement('canvas');
+  const tempCtx = tempCanvas.getContext('2d');
+  tempCanvas.width = originalCanvas.width * scaleFactor;
+  tempCanvas.height = originalCanvas.height * scaleFactor;
+
+  const gradient = tempCtx.createLinearGradient(0, 0, 0, tempCanvas.height);
+  gradient.addColorStop(0, 'rgba(150, 23, 72, 0.5)');
+  gradient.addColorStop(1, 'rgba(150, 23, 72, 0.1)');
+
+  const tempChart = new Chart(tempCtx, {
+    type: 'line',
+    data: {
+      labels: chart.data.labels,
+      datasets: [{
+        label: 'الارتفاع (متر)',
+        data: chart.data.datasets[0].data, // ✅ الإصلاح هنا
+        borderColor: '#961748',
+        backgroundColor: gradient,
+        borderWidth: 2 * scaleFactor,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0
+      }]
+    },
+    options: {
+      responsive: false,
+      animation: false,
+      devicePixelRatio: scaleFactor,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { font: { family: 'Cairo', size: 12 * scaleFactor } }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'المسافة (كم)', font: { family: 'Cairo', size: 14 * scaleFactor } },
+          ticks: { font: { family: 'Cairo', size: 11 * scaleFactor } }
+        },
+        y: {
+          title: { display: true, text: 'الارتفاع (متر)', font: { family: 'Cairo', size: 14 * scaleFactor } },
+          ticks: { font: { family: 'Cairo', size: 11 * scaleFactor } },
+          beginAtZero: false
+        }
+      }
+    }
+  });
+
+  setTimeout(() => {
+    const dataURL = tempCanvas.toDataURL('image/png', 1.0);
+    const link = document.createElement('a');
+    link.download = `terrain-profile-${scaleFactor === 1 ? 'normal' : 'hd'}.png`;
+    link.href = dataURL;
+    link.click();
+    tempChart.destroy();
+  }, 1000);
+}
+// تنزيل CSV
+function downloadCSV() {
+  if (!currentProfileData) {
+    alert('الرجاء رسم خط على الخريطة أولاً');
+    return;
+  }
+  let csv = 'Distance (km),Elevation (m),Latitude,Longitude\n';
+  for (let i = 0; i < currentProfileData.distances.length; i++) {
+    csv += `${currentProfileData.distances[i]},${currentProfileData.elevations[i].toFixed(2)},${currentProfileData.coords[i][1]},${currentProfileData.coords[i][0]}\n`;
+  }
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'terrain-profile.csv';
+  link.click();
+}
+document.getElementById('downloadCSVPanel').onclick = downloadCSV;
+
+// ✅ تنزيل GeoJSON
+function downloadGeoJSON() {
+  if (!currentLayer) {
+    alert('الرجاء رسم خط على الخريطة أولاً');
+    return;
+  }
+  const geojsonData = currentLayer.toGeoJSON();
+  const jsonString = JSON.stringify(geojsonData, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'CartoMaroc-Line.geojson';
+  link.click();
+}
+document.getElementById('downloadGeoJSONPanel').onclick = downloadGeoJSON;
 
 </script>
 </body>
