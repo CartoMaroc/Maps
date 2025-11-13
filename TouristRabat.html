@@ -1,131 +1,190 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="fr" dir="ltr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🗺️ Discover Rabat - Tourist Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Carte touristique - Rabat</title>
   <script src="https://cdn.jsdelivr.net/npm/ol@v7.4.0/dist/ol.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.4.0/ol.css">
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Poppins', 'Cairo', sans-serif; overflow: hidden; }
-    #map { width: 100%; height: 100vh; }
-    .app-header { position: absolute; top: 0; left: 0; right: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 12px 20px; z-index: 2000; box-shadow: 0 4px 20px rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center; }
-    .app-title { color: white; font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-    .app-title .icon { font-size: 28px; animation: bounce 2s infinite; }
-    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-    .search-container { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); z-index: 1500; width: 90%; max-width: 400px; }
-    .search-box { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 25px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); display: flex; align-items: center; padding: 8px 15px; gap: 10px; }
-    .search-box input { flex: 1; border: none; outline: none; padding: 8px; font-size: 14px; background: transparent; font-family: 'Poppins', 'Cairo', sans-serif; }
-    .search-box button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.3s ease; }
-    .search-box button:hover { transform: scale(1.05); box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5); }
-    .control-buttons { position: absolute; right: 15px; top: 150px; display: flex; flex-direction: column; gap: 12px; z-index: 1500; }
-    .control-btn { width: 50px; height: 50px; border-radius: 50%; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; font-size: 24px; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; }
-    .control-btn:hover { transform: scale(1.1); box-shadow: 0 6px 25px rgba(0,0,0,0.3); }
-    .control-btn.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-    .legend-container { position: absolute; bottom: 80px; left: 15px; z-index: 1500; max-width: 320px; width: 90%; }
-    .legend-toggle { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 20px; border-radius: 15px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; }
-    .legend-toggle:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.4); }
-    .legend { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; padding: 15px; margin-top: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); max-height: 400px; overflow-y: auto; display: none; }
-    .legend.show { display: block; animation: slideUp 0.3s ease-out; }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    .accordion-section { margin-bottom: 12px; }
-    .accordion-header { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 10px 12px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 14px; color: #333; transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; }
-    .accordion-header:hover { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; transform: scale(1.02); }
-    .accordion-header.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-    .accordion-content { display: none; padding: 10px; font-size: 13px; }
-    .accordion-content.show { display: block; }
-    .legend-item { padding: 8px; margin: 5px 0; background: rgba(240, 240, 240, 0.5); border-radius: 8px; display: flex; align-items: center; gap: 10px; }
-    .legend-item label { display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1; }
-    .legend-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
-    .ol-popup { position: absolute; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(15px); border-radius: 20px; padding: 20px; min-width: 250px; max-width: 350px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); border: 3px solid; border-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%) 1; max-height: 70vh; overflow-y: auto; }
-    .popup-header { font-size: 18px; font-weight: 700; color: #667eea; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid #667eea; padding-bottom: 8px; }
-    .popup-content table { width: 100%; font-size: 13px; line-height: 1.8; }
-    .popup-content td { padding: 6px; border-bottom: 1px solid #f0f0f0; }
-    .popup-content td:first-child { font-weight: 600; color: #555; width: 40%; }
-    .popup-content td:last-child { color: #333; }
-    .popup-list-item { padding: 10px 12px; margin: 5px 0; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 10px; cursor: pointer; transition: all 0.3s ease; font-weight: 600; }
-    .popup-list-item:hover { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; transform: translateX(-5px); }
-    .app-footer { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); padding: 8px 20px; border-radius: 20px; font-size: 13px; font-weight: 600; color: #667eea; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 1500; display: flex; align-items: center; gap: 6px; }
-    .legend::-webkit-scrollbar, .ol-popup::-webkit-scrollbar { width: 8px; }
-    .legend::-webkit-scrollbar-track, .ol-popup::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-    .legend::-webkit-scrollbar-thumb, .ol-popup::-webkit-scrollbar-thumb { background: #667eea; border-radius: 10px; }
-    @media (max-width: 768px) {
-      .app-title { font-size: 16px; }
-      .app-title .icon { font-size: 22px; }
-      .search-container { top: 65px; width: 95%; }
-      .control-buttons { right: 10px; top: 135px; }
-      .control-btn { width: 45px; height: 45px; font-size: 20px; }
-      .legend-container { bottom: 70px; left: 10px; max-width: 280px; }
-      .legend { max-height: 300px; }
-      .ol-popup { min-width: 200px; max-width: 90%; max-height: 60vh; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; background: #f5f5f5; }
+    #map { width: 100%; height: 100vh; position: relative; }
+    .app-header { position: absolute; top: 0; left: 0; right: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; display: flex; align-items: center; justify-content: space-between; }
+    .header-title { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: bold; }
+    .header-icon { font-size: 24px; }
+    .menu-btn, .lang-btn { background: rgba(255,255,255,0.2); border: none; color: white; font-size: 24px; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
+    .menu-btn:active, .lang-btn:active { transform: scale(0.9); }
+    .sidebar { position: fixed; top: 0; right: -320px; width: 320px; height: 100vh; background: white; box-shadow: -4px 0 20px rgba(0,0,0,0.2); z-index: 2000; transition: right 0.3s ease; overflow-y: auto; }
+    .sidebar.open { right: 0; }
+    .sidebar-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; font-size: 20px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+    .close-btn { background: none; border: none; color: white; font-size: 28px; cursor: pointer; }
+    .sidebar-content { padding: 15px; }
+    .section-title { font-size: 16px; font-weight: bold; color: #667eea; margin: 20px 0 10px 0; padding-bottom: 8px; border-bottom: 2px solid #667eea; }
+    .legend-item { display: flex; align-items: center; padding: 10px; margin: 8px 0; background: #f8f9fa; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+    .legend-item:active { transform: scale(0.98); }
+    .legend-item input[type="checkbox"] { width: 20px; height: 20px; margin-left: 10px; cursor: pointer; }
+    .legend-icon { font-size: 24px; margin: 0 10px; min-width: 30px; text-align: center; }
+    .legend-color { width: 20px; height: 20px; border-radius: 4px; margin: 0 10px; border: 2px solid #666; }
+    .legend-label { flex: 1; font-size: 14px; }
+    .slider-control { padding: 15px; background: #f8f9fa; border-radius: 8px; margin: 10px 0; }
+    .slider-control label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
+    .slider-control input[type="range"] { width: 100%; height: 6px; border-radius: 3px; background: #ddd; outline: none; }
+    .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1500; display: none; }
+    .overlay.active { display: block; }
+    .search-container { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; z-index: 999; }
+    .search-box { display: flex; background: white; border-radius: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden; }
+    .search-box input { flex: 1; border: none; padding: 12px 20px; font-size: 15px; outline: none; }
+    .search-box button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; padding: 12px 20px; cursor: pointer; font-size: 16px; }
+    .action-buttons { position: absolute; bottom: 100px; left: 15px; display: flex; flex-direction: column; gap: 12px; z-index: 999; }
+    .action-btn { width: 50px; height: 50px; border-radius: 50%; background: white; border: none; font-size: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
+    .action-btn:active { transform: scale(0.9); }
+    .action-btn.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .ol-popup { 
+      position: absolute; 
+      background: white; 
+      padding: 0; 
+      border-radius: 12px; 
+      min-width: 220px; 
+      max-width: 280px; 
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25); 
+      overflow: hidden; 
+      font-size: 14px;
     }
+    .popup-header { 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+      color: white; 
+      padding: 12px; 
+      font-size: 15px; 
+      font-weight: bold; 
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+    }
+    .popup-content { 
+      padding: 12px; 
+      max-height: 250px; 
+      overflow-y: auto; 
+      font-size: 13px;
+    }
+    .popup-item { padding: 8px 0; border-bottom: 1px solid #eee; }
+    .popup-item:last-child { border-bottom: none; }
+    .popup-label { font-size: 11px; color: #777; margin-bottom: 3px; }
+    .popup-value { font-size: 14px; color: #333; font-weight: 500; }
+    .popup-footer { 
+      padding: 8px 12px; 
+      text-align: right; 
+      font-size: 11px; 
+      color: #888; 
+      border-top: 1px solid #f0f0f0; 
+    }
+    .bus-line-item { padding: 12px; margin: 8px 0; background: #f8f9fa; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s; border: 2px solid transparent; }
+    .bus-line-item:hover { background: #e9ecef; border-color: #667eea; }
+    .bus-line-item:active { transform: scale(0.98); }
+    .bus-line-color { width: 30px; height: 6px; border-radius: 3px; }
+    .bottom-sheet { position: fixed; bottom: -400px; left: 0; right: 0; height: 400px; background: white; border-radius: 20px 20px 0 0; box-shadow: 0 -4px 20px rgba(0,0,0,0.2); z-index: 1100; transition: bottom 0.3s ease; }
+    .bottom-sheet.open { bottom: 0; }
+    .sheet-header { padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+    .sheet-title { font-size: 18px; font-weight: bold; }
+    .sheet-close { background: none; border: none; font-size: 24px; cursor: pointer; }
+    .sheet-content { padding: 15px; height: calc(100% - 60px); overflow-y: auto; }
+    .place-card { background: #f8f9fa; border-radius: 12px; padding: 15px; margin-bottom: 12px; display: flex; gap: 15px; cursor: pointer; }
+    .place-icon { font-size: 32px; }
+    .place-info { flex: 1; }
+    .place-name { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+    .place-type { font-size: 13px; color: #667eea; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 12px 24px; border-radius: 25px; z-index: 3000; display: none; }
+    .toast.show { display: block; animation: fadeInOut 3s; }
+    @keyframes fadeInOut { 0%, 100% { opacity: 0; } 10%, 90% { opacity: 1; } }
   </style>
 </head>
 <body>
   <div class="app-header">
-    <div class="app-title"><span class="icon">🗺️</span><span>Discover Rabat</span></div>
+    <button class="menu-btn" id="menuBtn">☰</button>
+    <div class="header-title"><span class="header-icon">🗺️</span><span>Touriste Rabat - CartoMaroc</span></div>
+    <button class="lang-btn">🌐</button>
   </div>
+
+  <div id="map"></div>
+
   <div class="search-container">
     <div class="search-box">
-      <span>🔍</span>
-      <input id="searchInput" type="text" placeholder="Search places, bus lines..." />
-      <button id="searchBtn">Search</button>
+      <input id="searchInput" type="text" placeholder="Rechercher un site touristique...">
+      <button id="searchBtn">🔍</button>
     </div>
   </div>
-  <div class="control-buttons">
-    <button class="control-btn" id="locateBtn" title="My Location">📍</button>
-    <button class="control-btn" id="pinBtn" title="Add Pin">📌</button>
+
+  <div class="action-buttons">
+    <button class="action-btn" id="locateBtn">📍</button>
+    <button class="action-btn" id="pinBtn">📌</button>
+    <button class="action-btn" id="nearestBtn">🎯</button>
   </div>
-  <div class="legend-container">
-    <div class="legend-toggle" id="legendToggle"><span>🗂️</span><span>Map Legend</span></div>
-    <div class="legend" id="main-legend">
-      <div class="accordion-section">
-        <div class="accordion-header" data-target="types-content"><span>🏛️</span><span>Tourist Places</span></div>
-        <div class="accordion-content" id="types-content"></div>
+
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span>Menu</span>
+      <button class="close-btn" id="closeBtn">×</button>
+    </div>
+    <div class="sidebar-content">
+      <div class="section-title">Types de sites touristiques</div>
+      <div id="legend-types"></div>
+      <div class="section-title">Lignes de bus</div>
+      <div class="slider-control">
+        <label>Épaisseur des lignes : <span id="thVal">3</span>px</label>
+        <input id="lineThickness" type="range" min="2" max="12" value="3" />
       </div>
-      <div class="accordion-section">
-        <div class="accordion-header" data-target="lines-content"><span>🚌</span><span>Bus Lines</span></div>
-        <div class="accordion-content" id="lines-content"></div>
-      </div>
+      <div id="legend-lines"></div>
     </div>
   </div>
-  <div class="app-footer"><span>🌍</span><span>© CartoMaroc 2025</span></div>
-  <div id="map"></div>
+
+  <div class="overlay" id="overlay"></div>
   <div id="popup" class="ol-popup" style="display:none;"></div>
 
+  <div class="bottom-sheet" id="bottomSheet">
+    <div class="sheet-header">
+      <span class="sheet-title">Sites les plus proches</span>
+      <button class="sheet-close" id="sheetClose">×</button>
+    </div>
+    <div class="sheet-content" id="sheetContent"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
   <script>
-    document.getElementById("legendToggle").addEventListener("click", () => {
-      document.getElementById("main-legend").classList.toggle('show');
+    const menuBtn = document.getElementById('menuBtn');
+    const sidebar = document.getElementById('sidebar');
+    const closeBtn = document.getElementById('closeBtn');
+    const overlay = document.getElementById('overlay');
+    const toast = document.getElementById('toast');
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    menuBtn.addEventListener('click', () => {
+      sidebar.classList.add('open');
+      overlay.classList.add('active');
     });
 
-    document.querySelectorAll(".accordion-header").forEach(h => {
-      h.addEventListener("click", () => {
-        const t = h.getAttribute("data-target");
-        const c = document.getElementById(t);
-        const a = h.classList.contains("active");
-        document.querySelectorAll(".accordion-content").forEach(x => x.classList.remove('show'));
-        document.querySelectorAll(".accordion-header").forEach(x => x.classList.remove("active"));
-        if (!a) { h.classList.add("active"); c.classList.add('show'); }
-      });
+    closeBtn.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('active');
+    });
+
+    overlay.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('active');
     });
 
     const map = new ol.Map({
       target: 'map',
-      layers: [
-        new ol.layer.Tile({
-          source: new ol.source.XYZ({
-            url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-          })
-        }),
-        new ol.layer.Tile({
-          source: new ol.source.XYZ({
-            url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
-          })
-        })
-      ],
-      view: new ol.View({ center: ol.proj.fromLonLat([-6.83255, 34.020882]), zoom: 13 })
+      layers: [new ol.layer.Tile({ source: new ol.source.OSM() })],
+      view: new ol.View({
+        center: ol.proj.fromLonLat([-6.83255, 34.020882]),
+        zoom: 13
+      })
     });
 
     const touristSource = new ol.source.Vector({
@@ -134,281 +193,419 @@
     });
 
     const busSource = new ol.source.Vector({
-      url: 'https://raw.githubusercontent.com/Ayoub-WebGis9/CartoMaroc/refs/heads/main/Line-Stad-Rabat.geojson',
+      url: 'https://raw.githubusercontent.com/Ayoub-WebGis9/CartoMaroc/main/Line-Stad-Rabat.geojson',
       format: new ol.format.GeoJSON()
     });
 
-    const typeStyles = {}, lineStyles = {};
+    const typeStyles = {};
+    const lineStyles = {};
+    const visibleTypes = new Set();
+    const visibleLines = new Set();
+    let selectedBusFeature = null;
 
     function getProp(f, keys) {
       for (const k of keys) {
         const v = f.get(k);
-        if (v !== undefined && v !== null) return v;
+        if (v) return v;
       }
-      return undefined;
+      return '';
     }
 
-    const emojiMap = {
-  'airport': '✈️', 'aéroport': '✈️',
-  'cultural': '🏛️', 'culturel': '🏛️', 'culture': '🏛️', 'musee': '🏛️', 'museum': '🏛️',
-  'ecotourism': '🌳', 'écotourisme': '🌳', 'eco': '🌳', 'nature': '🌳', 'jardin': '🌳', 'garden': '🌳', 'park': '🌳',
-  'hotel': '🏨', 'hôtel': '🏨', 'hotels': '🏨',
-  'stade': '🏟️', 'stadium': '🏟️',
-  'gare': '🚉'
-};
-
-
-    function getEmoji(type) {
-      const lt = type.toLowerCase().trim();
-      if (emojiMap[lt]) return emojiMap[lt];
-      for (const [k, e] of Object.entries(emojiMap)) {
-        if (lt.includes(k)) return e;
-      }
-      return '📍';
-    }
-
+    // 👇 touristLayer مع دعم الإيماجي المخصصة
     const touristLayer = new ol.layer.Vector({
       source: touristSource,
-      style: f => new ol.style.Style({
-        text: new ol.style.Text({
-          text: getEmoji((getProp(f, ['TYPE', 'Type', 'type']) || '').trim()),
-          font: '28px sans-serif',
-          textAlign: 'center',
-          textBaseline: 'middle'
-        })
-      })
+      style: f => {
+        const rawType = getProp(f, ['TYPE', 'Type', 'type']).trim();
+        if (!rawType) return null;
+
+        // استخدام الاسم الأصلي للتحقق من الرؤية
+        if (!visibleTypes.has(rawType)) return null;
+
+        const t = rawType.toLowerCase();
+
+        // عرض أنواع خاصة كنصوص (أيقونات)
+        if (t === 'stade') {
+          return new ol.style.Style({
+            text: new ol.style.Text({ text: '🏟️', font: '28px sans-serif' })
+          });
+        }
+        if (t === 'gare') {
+          return new ol.style.Style({
+            text: new ol.style.Text({ text: '🚉', font: '28px sans-serif' })
+          });
+        }
+        if (t === 'ecotourism') {
+          return new ol.style.Style({
+            text: new ol.style.Text({ text: '🌳', font: '28px sans-serif' })
+          });
+        }
+        if (t === 'cultural tourism') {
+          return new ol.style.Style({
+            text: new ol.style.Text({ text: '🏛️', font: '28px sans-serif' })
+          });
+        }
+
+        // باقي الأنواع: دوائر ملونة
+        if (typeStyles[rawType]) {
+          return typeStyles[rawType].style;
+        }
+
+        // نمط افتراضي مؤقت
+        return new ol.style.Style({
+          image: new ol.style.Circle({
+            radius: 8,
+            fill: new ol.style.Fill({ color: '#6c757d' }),
+            stroke: new ol.style.Stroke({ color: 'white', width: 2 })
+          })
+        });
+      }
     });
     map.addLayer(touristLayer);
 
+    touristSource.on('change', () => {
+      const feats = touristSource.getFeatures();
+      if (feats.length === 0) return;
+      const types = [...new Set(feats.map(f => getProp(f, ['TYPE', 'Type', 'type']).trim()).filter(Boolean))];
+      if (Object.keys(typeStyles).length === 0) {
+        types.sort().forEach((type, i) => {
+          const color = `hsl(${(i * 360) / types.length}, 70%, 50%)`;
+          typeStyles[type] = {
+            style: new ol.style.Style({
+              image: new ol.style.Circle({
+                radius: 9,
+                fill: new ol.style.Fill({ color }),
+                stroke: new ol.style.Stroke({ color: 'white', width: 3 })
+              })
+            }),
+            color
+          };
+          visibleTypes.add(type);
+        });
+        buildTypeLegend(types);
+        touristLayer.changed();
+      }
+    });
+
+    function buildTypeLegend(types) {
+      const container = document.getElementById('legend-types');
+      container.innerHTML = '';
+      types.forEach(type => {
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = true;
+        checkbox.id = 'type_' + type.replace(/\s+/g, '_');
+        
+        let icon = '';
+        const t = type.toLowerCase();
+        if (t === 'stade') icon = '<span class="legend-icon">🏟️</span>';
+        else if (t === 'gare') icon = '<span class="legend-icon">🚉</span>';
+        else if (t === 'ecotourism') icon = '<span class="legend-icon">🌳</span>';
+        else if (t === 'cultural tourism') icon = '<span class="legend-icon">🏛️</span>';
+        else icon = `<span class="legend-color" style="background:${typeStyles[type].color}"></span>`;
+        
+        const label = document.createElement('span');
+        label.className = 'legend-label';
+        label.textContent = type;
+        
+        item.appendChild(checkbox);
+        item.innerHTML += icon;
+        item.appendChild(label);
+        container.appendChild(item);
+        
+        item.addEventListener('click', (e) => {
+          if (e.target === checkbox) return;
+          checkbox.checked = !checkbox.checked;
+          checkbox.dispatchEvent(new Event('change'));
+        });
+        
+        checkbox.addEventListener('change', () => {
+          if (checkbox.checked) {
+            visibleTypes.add(type);
+          } else {
+            visibleTypes.delete(type);
+          }
+          touristLayer.changed();
+        });
+      });
+    }
+
     const busLayer = new ol.layer.Vector({
       source: busSource,
-      style: f => {
-        const l = (getProp(f, ['from_ar', 'Line', 'line']) || '').trim();
-        return (l && lineStyles[l]) ? lineStyles[l].style : new ol.style.Style({
-          stroke: new ol.style.Stroke({ color: '#888', width: 5 })
-        });
+      style: feature => {
+        const l = getProp(feature, ['from_ar', 'Line', 'line']).trim();
+        if (!visibleLines.has(l)) return null;
+
+        if (feature === selectedBusFeature) {
+          const baseWidth = parseFloat(document.getElementById('lineThickness').value);
+          return [
+            new ol.style.Style({
+              stroke: new ol.style.Stroke({ color: 'white', width: baseWidth + 6 })
+            }),
+            new ol.style.Style({
+              stroke: new ol.style.Stroke({ color: 'yellow', width: baseWidth + 2 })
+            })
+          ];
+        }
+
+        return lineStyles[l] ? lineStyles[l].style : null;
       }
     });
     map.addLayer(busLayer);
 
-    const visibleTypes = new Set();
-    touristSource.on('change', () => {
-      const feats = touristSource.getFeatures();
-      if (feats.length === 0) return;
-      const types = [...new Set(feats.map(f => (getProp(f, ['TYPE', 'Type', 'type']) || '').trim()).filter(Boolean))];
-      if (Object.keys(typeStyles).length === 0) {
-        types.sort().forEach((t, i) => {
-          typeStyles[t] = { color: `hsl(${(i * 360) / types.length}, 70%, 45%)` };
-        });
-        buildTypeLegend(types);
-      }
-    });
-
-    function buildTypeLegend(arr) {
-      const c = document.getElementById('types-content');
-      c.innerHTML = '';
-      arr.forEach(type => {
-        const emoji = getEmoji(type);
-        const id = 'chk_type_' + type.replace(/\s+/g, '_');
-        const div = document.createElement('div');
-        div.className = 'legend-item';
-        div.innerHTML = `<label><input type="checkbox" id="${id}" checked><span style="font-size:24px;">${emoji}</span><span style="font-weight:600;">${type}</span></label>`;
-        c.appendChild(div);
-        visibleTypes.add(type);
-        document.getElementById(id).addEventListener('change', e => {
-          if (e.target.checked) visibleTypes.add(type); else visibleTypes.delete(type);
-          touristLayer.setStyle(f => {
-            const t = (getProp(f, ['TYPE', 'Type', 'type']) || '').trim();
-            if (!visibleTypes.has(t)) return null;
-            return new ol.style.Style({
-              text: new ol.style.Text({ text: getEmoji(t), font: '28px sans-serif', textAlign: 'center', textBaseline: 'middle' })
-            });
-          });
-        });
-      });
-    }
-
-    const visibleLines = new Set();
     busSource.on('change', () => {
       const feats = busSource.getFeatures();
       if (feats.length === 0) return;
-      const lines = [...new Set(feats.map(f => (getProp(f, ['from_ar', 'Line', 'line']) || '').trim()).filter(Boolean))];
+      const lines = [...new Set(feats.map(f => getProp(f, ['from_ar', 'Line', 'line']).trim()).filter(Boolean))];
       if (Object.keys(lineStyles).length === 0) {
-        lines.sort().forEach((l, i) => {
-          const color = `hsl(${(i * 360) / lines.length}, 70%, 40%)`;
-          lineStyles[l] = {
-            style: new ol.style.Style({ stroke: new ol.style.Stroke({ color, width: 5, lineJoin: 'round', lineCap: 'round' }) }),
+        lines.sort().forEach((line, i) => {
+          const color = `hsl(${(i * 360) / lines.length}, 75%, 45%)`;
+          lineStyles[line] = {
+            style: new ol.style.Style({
+              stroke: new ol.style.Stroke({ color, width: 3 })
+            }),
             color
           };
+          visibleLines.add(line);
         });
         buildLineLegend(lines);
+        busLayer.changed();
       }
     });
 
-    function buildLineLegend(arr) {
-      const c = document.getElementById('lines-content');
-      c.innerHTML = '';
-      arr.forEach(line => {
-        const color = lineStyles[line].color;
-        const id = 'chk_line_' + line.replace(/\s+/g, '_');
-        const div = document.createElement('div');
-        div.className = 'legend-item';
-        div.innerHTML = `<label><input type="checkbox" id="${id}" checked><span style="display:inline-block;width:40px;height:6px;background:${color};border-radius:3px;"></span><span>${line}</span></label>`;
-        c.appendChild(div);
-        visibleLines.add(line);
-        document.getElementById(id).addEventListener('change', e => {
-          if (e.target.checked) visibleLines.add(line); else visibleLines.delete(line);
-          busLayer.setStyle(f => {
-            const l = (getProp(f, ['from_ar', 'Line', 'line']) || '').trim();
-            return (l && lineStyles[l] && visibleLines.has(l)) ? lineStyles[l].style : null;
-          });
+    function buildLineLegend(lines) {
+      const container = document.getElementById('legend-lines');
+      container.innerHTML = '';
+      lines.forEach(line => {
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = true;
+        checkbox.id = 'line_' + line.replace(/\s+/g, '_');
+        
+        const colorBox = document.createElement('span');
+        colorBox.className = 'legend-color';
+        colorBox.style.background = lineStyles[line].color;
+        
+        const label = document.createElement('span');
+        label.className = 'legend-label';
+        label.textContent = line;
+        
+        item.appendChild(checkbox);
+        item.appendChild(colorBox);
+        item.appendChild(label);
+        container.appendChild(item);
+        
+        item.addEventListener('click', (e) => {
+          if (e.target === checkbox) return;
+          checkbox.checked = !checkbox.checked;
+          checkbox.dispatchEvent(new Event('change'));
         });
+        
+        checkbox.addEventListener('change', () => {
+          if (checkbox.checked) {
+            visibleLines.add(line);
+          } else {
+            visibleLines.delete(line);
+          }
+          busLayer.changed();
+        });
+      });
+      
+      document.getElementById('lineThickness').addEventListener('input', e => {
+        document.getElementById('thVal').textContent = e.target.value;
+        Object.values(lineStyles).forEach(s => {
+          s.style.getStroke().setWidth(+e.target.value);
+        });
+        busLayer.changed();
       });
     }
 
     const popupEl = document.getElementById('popup');
-    const overlay = new ol.Overlay({ element: popupEl, autoPan: true, autoPanAnimation: { duration: 300 } });
-    map.addOverlay(overlay);
-
-    let selectedFeature = null;
-    const highlightStyle = new ol.style.Style({ stroke: new ol.style.Stroke({ color: 'rgba(255, 215, 0, 0.9)', width: 8 }) });
-    const originalStyles = new Map();
-
-    function selectFeature(f) {
-      if (selectedFeature) {
-        selectedFeature.setStyle(originalStyles.get(selectedFeature) || null);
-        selectedFeature = null;
-      }
-      if (!originalStyles.has(f)) originalStyles.set(f, f.getStyle());
-      f.setStyle(highlightStyle);
-      selectedFeature = f;
-    }
+    const popupOverlay = new ol.Overlay({ element: popupEl, autoPan: { animation: { duration: 250 } } });
+    map.addOverlay(popupOverlay);
 
     map.on('singleclick', evt => {
-      overlay.setPosition(undefined);
-      popupEl.style.display = 'none';
-      const fps = [];
-      map.forEachFeatureAtPixel(evt.pixel, (f, l) => {
-        if (l === touristLayer || l === busLayer) fps.push({ feature: f, layer: l });
+      let clickedOnBus = false;
+      const allFeatures = [];
+      map.forEachFeatureAtPixel(evt.pixel, (feature, layer) => {
+        allFeatures.push({ feature, layer });
+        if (layer === busLayer) clickedOnBus = true;
       });
-      if (fps.length === 0) {
-        if (selectedFeature) {
-          selectedFeature.setStyle(originalStyles.get(selectedFeature) || null);
-          selectedFeature = null;
-        }
+
+      if (!clickedOnBus && selectedBusFeature) {
+        selectedBusFeature = null;
+        busLayer.changed();
+      }
+
+      if (allFeatures.length === 0) {
+        popupEl.style.display = 'none';
         return;
       }
-      if (fps[0].layer === touristLayer) {
-        const f = fps[0].feature;
-        const props = f.getProperties();
-        const type = props.TYPE || props.Type || props.type || '';
-        const emoji = getEmoji(type);
-        let html = `<div class="popup-header">${emoji} Tourist Info</div><div class="popup-content"><table>`;
-        for (const k in props) {
-          if (k !== 'geometry') html += `<tr><td>${k}</td><td>${props[k]}</td></tr>`;
-        }
-        html += '</table></div>';
-        popupEl.innerHTML = html;
-        popupEl.style.display = 'block';
-        overlay.setPosition(evt.coordinate);
-        return;
-      }
-      const busFs = fps.filter(x => x.layer === busLayer).map(x => x.feature);
-      if (busFs.length === 1) {
-        const f = busFs[0];
-        const ln = f.get('from_ar') || f.get('Line') || 'Bus Line';
-        selectFeature(f);
-        popupEl.innerHTML = `<div class="popup-header">🚌 ${ln}</div>`;
-        popupEl.style.display = 'block';
-        overlay.setPosition(evt.coordinate);
-      } else if (busFs.length > 1) {
-        let html = '<div class="popup-header">🚌 Select Bus Line</div><div class="popup-content">';
-        busFs.forEach((f, i) => {
-          const ln = f.get('from_ar') || f.get('Line') || `Bus ${i + 1}`;
-          html += `<div class="popup-list-item" onclick="selectBusFromPopup(${i})">🚌 ${ln}</div>`;
+
+      const busFeatures = allFeatures.filter(f => f.layer === busLayer);
+      const touristFeatures = allFeatures.filter(f => f.layer === touristLayer);
+
+      if (busFeatures.length > 1) {
+        let html = `<div class="popup-header">🚌 Choisir une ligne</div><div class="popup-content">`;
+        busFeatures.forEach((item, idx) => {
+          const lineName = getProp(item.feature, ['from_ar', 'Line', 'line']) || `Ligne ${idx + 1}`;
+          const lineColor = lineStyles[lineName] ? lineStyles[lineName].color : '#667eea';
+          html += `
+            <div class="bus-line-item" onclick="showBusLineDetails('${lineName}', ${evt.coordinate[0]}, ${evt.coordinate[1]})">
+              <span style="font-size:20px;">🚌</span>
+              <div class="bus-line-color" style="background:${lineColor}"></div>
+              <span style="flex:1">${lineName}</span>
+              <span style="color:#667eea">→</span>
+            </div>`;
         });
-        html += '</div>';
+        html += `</div>`;
         popupEl.innerHTML = html;
         popupEl.style.display = 'block';
-        overlay.setPosition(evt.coordinate);
-        window.selectBusFromPopup = function(idx) {
-          selectFeature(busFs[idx]);
-          popupEl.style.display = 'none';
-          overlay.setPosition(undefined);
-        };
+        popupOverlay.setPosition(evt.coordinate);
+        return;
+      }
+
+      if (busFeatures.length === 1) {
+        const clickedFeature = busFeatures[0].feature;
+
+        if (selectedBusFeature) selectedBusFeature = null;
+        selectedBusFeature = clickedFeature;
+        busLayer.changed();
+
+        const lineName = getProp(clickedFeature, ['from_ar', 'Line', 'line']) || 'Ligne de bus';
+        const lineColor = lineStyles[lineName] ? lineStyles[lineName].color : '#667eea';
+        popupEl.innerHTML = `
+          <div class="popup-header">
+            🚌 ${lineName}
+          </div>
+          <div class="popup-content">
+            <div class="popup-item">
+              <div class="popup-label">Couleur de la ligne</div>
+              <div class="bus-line-color" style="background:${lineColor}; width:100%; height:10px;"></div>
+            </div>
+          </div>`;
+        popupEl.style.display = 'block';
+        popupOverlay.setPosition(evt.coordinate);
+        return;
+      }
+
+      if (touristFeatures.length > 0) {
+        const feature = touristFeatures[0].feature;
+        const props = feature.getProperties();
+        const name = getProp(feature, ['Name', 'name', 'NAME']) || 'Site touristique';
+        let html = `<div class="popup-header">📍 ${name}</div><div class="popup-content">`;
+        for (const k in props) {
+          if (k !== 'geometry' && k !== 'Name' && k !== 'name' && k !== 'NAME') {
+            html += `<div class="popup-item"><div class="popup-label">${k}</div><div class="popup-value">${props[k]}</div></div>`;
+          }
+        }
+        html += `</div><div class="popup-footer">@CartoMaroc</div>`;
+        popupEl.innerHTML = html;
+        popupEl.style.display = 'block';
+        popupOverlay.setPosition(evt.coordinate);
       }
     });
 
-    function search() {
-      const q = document.getElementById('searchInput').value.trim().toLowerCase();
-      if (!q) { alert('⚠️ Please enter search text'); return; }
-      const tFs = touristSource.getFeatures();
-      for (const f of tFs) {
-        const v = getProp(f, ['Name', 'NAME', 'name']);
-        if (v && v.toLowerCase().includes(q)) {
-          map.getView().animate({ center: f.getGeometry().getFirstCoordinate(), zoom: 17, duration: 1000 });
-          return;
-        }
-      }
-      const bFs = busSource.getFeatures();
-      for (const f of bFs) {
-        const v = getProp(f, ['from_ar', 'Line', 'line']);
-        if (v && v.toLowerCase().includes(q)) {
-          const g = f.getGeometry();
-          let c = null;
-          if (g.getType() === 'LineString') c = g.getFirstCoordinate();
-          else if (g.getType() === 'MultiLineString') c = g.getLineString(0).getFirstCoordinate();
-          else c = g.getClosestPoint(map.getView().getCenter());
-          map.getView().animate({ center: c, zoom: 14, duration: 1000 });
-          return;
-        }
-      }
-      alert('❌ No results found');
-    }
+    window.showBusLineDetails = function(lineName, x, y) {
+      const features = busSource.getFeatures();
+      const targetFeature = features.find(f => getProp(f, ['from_ar', 'Line', 'line']) === lineName);
 
-    document.getElementById('searchBtn').addEventListener('click', search);
-    document.getElementById('searchInput').addEventListener('keyup', e => { if (e.key === 'Enter') search(); });
+      if (selectedBusFeature) selectedBusFeature = null;
+      if (targetFeature) {
+        selectedBusFeature = targetFeature;
+        busLayer.changed();
+      }
 
-    const locLayer = new ol.layer.Vector({
-      source: new ol.source.Vector(),
-      style: new ol.style.Style({
-        image: new ol.style.Circle({ radius: 10, fill: new ol.style.Fill({ color: 'red' }), stroke: new ol.style.Stroke({ color: 'white', width: 3 }) })
-      })
-    });
-    map.addLayer(locLayer);
+      const lineColor = lineStyles[lineName] ? lineStyles[lineName].color : '#667eea';
+      popupEl.innerHTML = `
+        <div class="popup-header">
+          🚌 ${lineName}
+        </div>
+        <div class="popup-content">
+          <div class="popup-item">
+            <div class="popup-label">Couleur de la ligne</div>
+            <div class="bus-line-color" style="background:${lineColor}; width:100%; height:10px;"></div>
+          </div>
+        </div>`;
+      popupEl.style.display = 'block';
+      popupOverlay.setPosition([x, y]);
+    };
 
     document.getElementById('locateBtn').addEventListener('click', () => {
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(pos => {
-          const c = ol.proj.fromLonLat([pos.coords.longitude, pos.coords.latitude]);
-          locLayer.getSource().clear();
-          locLayer.getSource().addFeature(new ol.Feature(new ol.geom.Point(c)));
-          map.getView().animate({ center: c, zoom: 15 });
-        }, err => alert("Unable to get your position: " + err.message), { enableHighAccuracy: true, timeout: 10000 });
-      } else alert("Geolocation not supported.");
+      if (!navigator.geolocation) {
+        showToast('Localisation indisponible');
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(pos => {
+        const coords = ol.proj.fromLonLat([pos.coords.longitude, pos.coords.latitude]);
+        map.getView().animate({ center: coords, zoom: 15 });
+      }, () => showToast('Erreur de géolocalisation'));
     });
 
-    const pinSource = new ol.source.Vector();
-    const pinLayer = new ol.layer.Vector({
-      source: pinSource,
-      style: new ol.style.Style({
-        image: new ol.style.Icon({ src: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', scale: 0.07, anchor: [0.5, 1] })
-      })
-    });
-    map.addLayer(pinLayer);
-
-    let pinActive = false;
+    let addingPin = false;
     document.getElementById('pinBtn').addEventListener('click', () => {
-      pinActive = !pinActive;
+      addingPin = !addingPin;
       document.getElementById('pinBtn').classList.toggle('active');
+      showToast(addingPin ? 'Cliquez sur la carte' : '');
     });
 
     map.on('click', evt => {
-      if (!pinActive) return;
-      pinSource.clear();
-      pinSource.addFeature(new ol.Feature(new ol.geom.Point(evt.coordinate)));
-      pinActive = false;
+      if (!addingPin) return;
+      addingPin = false;
       document.getElementById('pinBtn').classList.remove('active');
+      const marker = new ol.Feature(new ol.geom.Point(evt.coordinate));
+      marker.setStyle(new ol.style.Style({
+        image: new ol.style.Icon({
+          src: 'image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="32" height="32"%3E%3Ctext y="28" font-size="28"%3E📌%3C/text%3E%3C/svg%3E',
+          scale: 1
+        })
+      }));
+      new ol.layer.Vector({ source: new ol.source.Vector({ features: [marker] }) }).setMap(map);
+      showToast('Épingle ajoutée');
+    });
+
+    document.getElementById('nearestBtn').addEventListener('click', () => {
+      const sheet = document.getElementById('bottomSheet');
+      const content = document.getElementById('sheetContent');
+      sheet.classList.add('open');
+      content.innerHTML = '';
+      touristSource.getFeatures().slice(0, 5).forEach(f => {
+        const name = getProp(f, ['Name', 'name', 'NAME']) || 'Site';
+        const type = getProp(f, ['TYPE', 'Type', 'type']) || '';
+        const card = document.createElement('div');
+        card.className = 'place-card';
+        card.innerHTML = `<div class="place-icon">📍</div>
+          <div class="place-info">
+            <div class="place-name">${name}</div>
+            <div class="place-type">${type}</div>
+          </div>`;
+        card.addEventListener('click', () => {
+          map.getView().animate({ center: f.getGeometry().getCoordinates(), zoom: 16 });
+          sheet.classList.remove('open');
+        });
+        content.appendChild(card);
+      });
+    });
+
+    document.getElementById('sheetClose').addEventListener('click', () => {
+      document.getElementById('bottomSheet').classList.remove('open');
+    });
+
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      if (!q) return;
+      const found = touristSource.getFeatures().find(f => {
+        const n = getProp(f, ['Name', 'name', 'NAME']).toLowerCase();
+        return n.includes(q);
+      });
+      if (found) {
+        map.getView().animate({ center: found.getGeometry().getCoordinates(), zoom: 16 });
+      } else {
+        showToast('Aucun résultat trouvé');
+      }
     });
   </script>
 </body>
