@@ -78,6 +78,21 @@
       color: #888; 
       border-top: 1px solid #f0f0f0; 
     }
+
+    /* 👇 NEW: Signature at bottom of map */
+    .map-signature {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
     .bus-line-item { padding: 12px; margin: 8px 0; background: #f8f9fa; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s; border: 2px solid transparent; }
     .bus-line-item:hover { background: #e9ecef; border-color: #667eea; }
     .bus-line-item:active { transform: scale(0.98); }
@@ -101,11 +116,14 @@
 <body>
   <div class="app-header">
     <button class="menu-btn" id="menuBtn">☰</button>
-    <div class="header-title"><span class="header-icon">🗺️</span><span>Touriste Rabat - CartoMaroc</span></div>
+    <div class="header-title"><span class="header-icon">🗺️</span><span>Carte touristique - Rabat</span></div>
     <button class="lang-btn">🌐</button>
   </div>
 
   <div id="map"></div>
+
+  <!-- 👇 NEW: Signature at bottom left -->
+  <div class="map-signature">@CartoMaroc</div>
 
   <div class="search-container">
     <div class="search-box">
@@ -151,6 +169,8 @@
   <div class="toast" id="toast"></div>
 
   <script>
+    // ... (الدوال العلوية دون تغيير: showToast, menuBtn, etc.)
+
     const menuBtn = document.getElementById('menuBtn');
     const sidebar = document.getElementById('sidebar');
     const closeBtn = document.getElementById('closeBtn');
@@ -187,6 +207,8 @@
       })
     });
 
+    // ... (باقي تعريف المصادر والمتحولات دون تغيير)
+
     const touristSource = new ol.source.Vector({
       url: 'https://raw.githubusercontent.com/Ayoub-WebGis9/CartoMaroc/main/TouristRabat.geojson',
       format: new ol.format.GeoJSON()
@@ -211,19 +233,13 @@
       return '';
     }
 
-    // 👇 touristLayer مع دعم الإيماجي المخصصة
     const touristLayer = new ol.layer.Vector({
       source: touristSource,
       style: f => {
         const rawType = getProp(f, ['TYPE', 'Type', 'type']).trim();
         if (!rawType) return null;
-
-        // استخدام الاسم الأصلي للتحقق من الرؤية
         if (!visibleTypes.has(rawType)) return null;
-
         const t = rawType.toLowerCase();
-
-        // عرض أنواع خاصة كنصوص (أيقونات)
         if (t === 'stade') {
           return new ol.style.Style({
             text: new ol.style.Text({ text: '🏟️', font: '28px sans-serif' })
@@ -236,7 +252,7 @@
         }
         if (t === 'ecotourism') {
           return new ol.style.Style({
-            text: new ol.style.Text({ text: '🌳', font: '28px sans-serif' })
+            text: new ol.style.Text({ text: '🌿', font: '28px sans-serif' })
           });
         }
         if (t === 'cultural tourism') {
@@ -244,13 +260,9 @@
             text: new ol.style.Text({ text: '🏛️', font: '28px sans-serif' })
           });
         }
-
-        // باقي الأنواع: دوائر ملونة
         if (typeStyles[rawType]) {
           return typeStyles[rawType].style;
         }
-
-        // نمط افتراضي مؤقت
         return new ol.style.Style({
           image: new ol.style.Circle({
             radius: 8,
@@ -261,6 +273,8 @@
       }
     });
     map.addLayer(touristLayer);
+
+    // ... (باقي الأحداث: touristSource.on, busSource.on, buildLegend, etc.)
 
     touristSource.on('change', () => {
       const feats = touristSource.getFeatures();
@@ -301,7 +315,7 @@
         const t = type.toLowerCase();
         if (t === 'stade') icon = '<span class="legend-icon">🏟️</span>';
         else if (t === 'gare') icon = '<span class="legend-icon">🚉</span>';
-        else if (t === 'ecotourism') icon = '<span class="legend-icon">🌳</span>';
+        else if (t === 'ecotourism') icon = '<span class="legend-icon">🌿</span>';
         else if (t === 'cultural tourism') icon = '<span class="legend-icon">🏛️</span>';
         else icon = `<span class="legend-color" style="background:${typeStyles[type].color}"></span>`;
         
@@ -336,7 +350,6 @@
       style: feature => {
         const l = getProp(feature, ['from_ar', 'Line', 'line']).trim();
         if (!visibleLines.has(l)) return null;
-
         if (feature === selectedBusFeature) {
           const baseWidth = parseFloat(document.getElementById('lineThickness').value);
           return [
@@ -348,7 +361,6 @@
             })
           ];
         }
-
         return lineStyles[l] ? lineStyles[l].style : null;
       }
     });
@@ -470,11 +482,9 @@
 
       if (busFeatures.length === 1) {
         const clickedFeature = busFeatures[0].feature;
-
         if (selectedBusFeature) selectedBusFeature = null;
         selectedBusFeature = clickedFeature;
         busLayer.changed();
-
         const lineName = getProp(clickedFeature, ['from_ar', 'Line', 'line']) || 'Ligne de bus';
         const lineColor = lineStyles[lineName] ? lineStyles[lineName].color : '#667eea';
         popupEl.innerHTML = `
@@ -512,13 +522,11 @@
     window.showBusLineDetails = function(lineName, x, y) {
       const features = busSource.getFeatures();
       const targetFeature = features.find(f => getProp(f, ['from_ar', 'Line', 'line']) === lineName);
-
       if (selectedBusFeature) selectedBusFeature = null;
       if (targetFeature) {
         selectedBusFeature = targetFeature;
         busLayer.changed();
       }
-
       const lineColor = lineStyles[lineName] ? lineStyles[lineName].color : '#667eea';
       popupEl.innerHTML = `
         <div class="popup-header">
@@ -552,6 +560,7 @@
       showToast(addingPin ? 'Cliquez sur la carte' : '');
     });
 
+    // 👇 FIXED: Correct icon URL with "data:"
     map.on('click', evt => {
       if (!addingPin) return;
       addingPin = false;
@@ -559,7 +568,7 @@
       const marker = new ol.Feature(new ol.geom.Point(evt.coordinate));
       marker.setStyle(new ol.style.Style({
         image: new ol.style.Icon({
-          src: 'image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="32" height="32"%3E%3Ctext y="28" font-size="28"%3E📌%3C/text%3E%3C/svg%3E',
+          src: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="32" height="32"%3E%3Ctext y="28" font-size="28"%3E📌%3C/text%3E%3C/svg%3E',
           scale: 1
         })
       }));
