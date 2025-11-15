@@ -1,0 +1,76 @@
+<!--
+Created using JS Bin
+http://jsbin.com
+
+Copyright (c) 2025 by anonymous (http://jsbin.com/qosiquholo/1/edit)
+
+Released under the MIT license: http://jsbin.mit-license.org
+-->
+<meta name="robots" content="noindex">
+const form = document.getElementById('convForm');
+const statusEl = document.getElementById('status');
+const downloadEl = document.getElementById('download');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  statusEl.textContent = "جارٍ رفع الملف وطلب التحويل... يُرجى الانتظار.";
+  downloadEl.innerHTML = '';
+
+  const fileInput = document.getElementById('fileInput');
+  const target = document.getElementById('target').value;
+  if (!fileInput.files.length) {
+    statusEl.textContent = "اختر ملفاً أولاً.";
+    return;
+  }
+  const file = fileInput.files[0];
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('target', target);
+
+  try {
+    const resp = await fetch('/convert', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!resp.ok) {
+      const j = await resp.json().catch(()=>null);
+      statusEl.textContent = "فشل التحويل: " + (j && j.error ? j.error : resp.statusText);
+      if (j && j.detail) {
+        const pre = document.createElement('pre');
+        pre.textContent = j.detail;
+        downloadEl.appendChild(pre);
+      }
+      return;
+    }
+
+    // get filename from content-disposition if present
+    const disposition = resp.headers.get('content-disposition') || '';
+    let filename = '';
+    const match = /filename="?([^"]+)"?/.exec(disposition);
+    if (match) filename = match[1];
+    else {
+      // generate fallback
+      filename = 'converted_output';
+      switch(target) {
+        case 'geojson': filename += '.geojson'; break;
+        case 'kml': filename += '.kml'; break;
+        case 'shp': filename += '.zip'; break;
+        case 'dbf': filename += '.dbf'; break;
+        case 'pdf': filename += '.zip'; break;
+      }
+    }
+
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.textContent = `تحميل: ${filename}`;
+    downloadEl.appendChild(a);
+    statusEl.textContent = "تم التحويل بنجاح — اضغط الرابط لتحميل الملف.";
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "حدث خطأ أثناء الاتصال بالخادم: " + err.message;
+  }
+});
