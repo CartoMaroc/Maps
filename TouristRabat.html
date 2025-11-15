@@ -78,8 +78,6 @@
       color: #888; 
       border-top: 1px solid #f0f0f0; 
     }
-
-    /* 👇 NEW: Signature at bottom of map */
     .map-signature {
       position: absolute;
       bottom: 10px;
@@ -92,7 +90,6 @@
       z-index: 1000;
       pointer-events: none;
     }
-
     .bus-line-item { padding: 12px; margin: 8px 0; background: #f8f9fa; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s; border: 2px solid transparent; }
     .bus-line-item:hover { background: #e9ecef; border-color: #667eea; }
     .bus-line-item:active { transform: scale(0.98); }
@@ -121,8 +118,6 @@
   </div>
 
   <div id="map"></div>
-
-  <!-- 👇 NEW: Signature at bottom left -->
   <div class="map-signature">@CartoMaroc</div>
 
   <div class="search-container">
@@ -169,8 +164,6 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    // ... (الدوال العلوية دون تغيير: showToast, menuBtn, etc.)
-
     const menuBtn = document.getElementById('menuBtn');
     const sidebar = document.getElementById('sidebar');
     const closeBtn = document.getElementById('closeBtn');
@@ -206,8 +199,6 @@
         zoom: 13
       })
     });
-
-    // ... (باقي تعريف المصادر والمتحولات دون تغيير)
 
     const touristSource = new ol.source.Vector({
       url: 'https://raw.githubusercontent.com/Ayoub-WebGis9/CartoMaroc/main/TouristRabat.geojson',
@@ -274,8 +265,6 @@
     });
     map.addLayer(touristLayer);
 
-    // ... (باقي الأحداث: touristSource.on, busSource.on, buildLegend, etc.)
-
     touristSource.on('change', () => {
       const feats = touristSource.getFeatures();
       if (feats.length === 0) return;
@@ -308,7 +297,7 @@
         item.className = 'legend-item';
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.checked = false;
+        checkbox.checked = true;
         checkbox.id = 'type_' + type.replace(/\s+/g, '_');
         
         let icon = '';
@@ -542,17 +531,106 @@
       popupOverlay.setPosition([x, y]);
     };
 
+    // ========================================
+    // 🔥 GEOLOCATION IMPROVED CODE
+    // ========================================
+    let geolocationLayer = null;
+    let geolocation = null;
+
+    function setupGeolocation() {
+      geolocation = new ol.Geolocation({
+        trackingOptions: {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        },
+        projection: map.getView().getProjection()
+      });
+
+      const positionFeature = new ol.Feature();
+      positionFeature.setStyle(new ol.style.Style({
+        image: new ol.style.Circle({
+          radius: 10,
+          fill: new ol.style.Fill({ color: '#3399CC' }),
+          stroke: new ol.style.Stroke({ color: '#fff', width: 3 })
+        })
+      }));
+
+      const accuracyFeature = new ol.Feature();
+      accuracyFeature.setStyle(new ol.style.Style({
+        fill: new ol.style.Fill({ color: 'rgba(51, 153, 204, 0.2)' }),
+        stroke: new ol.style.Stroke({ color: '#3399CC', width: 2 })
+      }));
+
+      geolocation.on('change:position', function() {
+        const coordinates = geolocation.getPosition();
+        if (coordinates) {
+          positionFeature.setGeometry(new ol.geom.Point(coordinates));
+          map.getView().animate({ 
+            center: coordinates, 
+            zoom: 17,
+            duration: 1000 
+          });
+          showToast('✅ تم تحديد موقعك');
+        }
+      });
+
+      geolocation.on('change:accuracyGeometry', function() {
+        const geometry = geolocation.getAccuracyGeometry();
+        if (geometry) {
+          accuracyFeature.setGeometry(geometry);
+        }
+      });
+
+      geolocation.on('error', function(error) {
+        let message = '';
+        switch(error.code) {
+          case 1:
+            message = '❌ الرجاء السماح بالوصول للموقع في إعدادات المتصفح';
+            break;
+          case 2:
+            message = '📡 لا يمكن تحديد الموقع. تأكد من تفعيل GPS';
+            break;
+          case 3:
+            message = '⏱️ انتهت المهلة. حاول مرة أخرى';
+            break;
+          default:
+            message = '❌ خطأ في تحديد الموقع';
+        }
+        showToast(message);
+        geolocation.setTracking(false);
+        document.getElementById('locateBtn').classList.remove('active');
+      });
+
+      geolocationLayer = new ol.layer.Vector({
+        source: new ol.source.Vector({
+          features: [accuracyFeature, positionFeature]
+        }),
+        zIndex: 1000
+      });
+      
+      map.addLayer(geolocationLayer);
+    }
+
+    setupGeolocation();
+
     document.getElementById('locateBtn').addEventListener('click', () => {
-      if (!navigator.geolocation) {
-        showToast('Localisation indisponible');
-        return;
+      const btn = document.getElementById('locateBtn');
+      
+      if (!geolocation.getTracking()) {
+        showToast('🔍 جاري تحديد موقعك...');
+        geolocation.setTracking(true);
+        btn.classList.add('active');
+      } else {
+        geolocation.setTracking(false);
+        btn.classList.remove('active');
+        showToast('تم إيقاف التتبع');
       }
-      navigator.geolocation.getCurrentPosition(pos => {
-        const coords = ol.proj.fromLonLat([pos.coords.longitude, pos.coords.latitude]);
-        map.getView().animate({ center: coords, zoom: 15 });
-      }, () => showToast('Erreur de géolocalisation'));
     });
 
+    // ========================================
+    // PIN BUTTON
+    // ========================================
     let addingPin = false;
     document.getElementById('pinBtn').addEventListener('click', () => {
       addingPin = !addingPin;
@@ -560,7 +638,6 @@
       showToast(addingPin ? 'Cliquez sur la carte' : '');
     });
 
-    // 👇 FIXED: Correct icon URL with "data:"
     map.on('click', evt => {
       if (!addingPin) return;
       addingPin = false;
@@ -576,6 +653,9 @@
       showToast('Épingle ajoutée');
     });
 
+    // ========================================
+    // NEAREST BUTTON
+    // ========================================
     document.getElementById('nearestBtn').addEventListener('click', () => {
       const sheet = document.getElementById('bottomSheet');
       const content = document.getElementById('sheetContent');
@@ -603,6 +683,9 @@
       document.getElementById('bottomSheet').classList.remove('open');
     });
 
+    // ========================================
+    // SEARCH
+    // ========================================
     document.getElementById('searchBtn').addEventListener('click', () => {
       const q = document.getElementById('searchInput').value.trim().toLowerCase();
       if (!q) return;
